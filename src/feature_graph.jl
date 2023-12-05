@@ -6,7 +6,7 @@
 """
     FeatureGraph(nf, ef, senders, receivers)
 
-Data structure that is used as an input for the [GraphNetCore.GraphNetwork](@ref).
+Data structure that is used as an input for the [`GraphNetwork`](@ref).
 
 # Arguments
 - `nf`: Node features of the graph.

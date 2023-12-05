@@ -34,7 +34,7 @@ end
 Inverses the normalised data.
 
 # Arguments
-- `n`: The used [GraphNetCore.NormaliserOffline](@ref).
+- `n`: The used [`NormaliserOffline`](@ref).
 - `data`: Data to be converted back.
 
 # Returns
@@ -75,7 +75,7 @@ It is recommended to use offline normalization since the minimum and maximum do 
 
 # Arguments
 - `dims`: Dimension of the quantity to normalize.
-- `device`: Device where the Normaliser should be loaded (see [Lux.gpu_device()](@ref) and [Lux.cpu_device()](@ref)).
+- `device`: Device where the Normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
 # Keyword Arguments
 - `max_acc = 10f6`: Maximum number of accumulation steps.
@@ -92,8 +92,8 @@ Online normalization if the minimum and maximum of the quantity is not known.
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
 
 # Arguments
-- `d`: Dictionary containing the fields of the struct [GraphNetCore.NormaliserOnline](@ref).
-- `device`: Device where the Normaliser should be loaded (see [Lux.gpu_device()](@ref) and [Lux.cpu_device()](@ref)).
+- `d`: Dictionary containing the fields of the struct [`NormaliserOnline`](@ref).
+- `device`: Device where the Normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 """
 function NormaliserOnline(d::Dict{String, Any}, device::Function)
     NormaliserOnline(d["max_accumulations"], d["std_epsilon"], d["acc_count"], d["num_accumulations"], device(d["acc_sum"]), device(d["acc_sum_squared"]))
@@ -114,7 +114,7 @@ end
 Inverses the normalised data.
 
 # Arguments
-- `n`: The used [GraphNetCore.NormaliserOnline](@ref).
+- `n`: The used [`NormaliserOnline`](@ref).
 - `data`: Data to be converted back.
 
 # Returns

@@ -19,7 +19,7 @@ include("graph_net_blocks.jl")
 The central data structure that contains the neural network and the normalisers corresponding to the components of the GNN (edge features, node features and output).
 
 # Arguments
-- `model`: The Enocde-Process-Decode model as a [Lux.Chain](@ref).
+- `model`: The Enocde-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain.
 - `ps`: Parameters of the model.
 - `st`: State of the model.
 - `e_norm`: Normaliser for the edge features of the GNN.
@@ -57,7 +57,7 @@ end
 """
     build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer, device::Function)
 
-Constructs the Encode-Process-Decode model as a [Lux.Chain](@ref) with the given arguments.
+Constructs the Encode-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain with the given arguments.
 
 # Arguments
 - `quantities_size`: Sum of dimensions of each node feature.
@@ -66,10 +66,10 @@ Constructs the Encode-Process-Decode model as a [Lux.Chain](@ref) with the given
 - `mps`: Number of message passing steps.
 - `layer_size`: Size of hidden layers.
 - `hidden_layers`: Number of hidden layers.
-- `device`: Device where the model should be loaded (see [Lux.gpu_device()](@ref) and [Lux.cpu_device()](@ref)).
+- `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
 # Returns
-- `model`: The Encode-Process-Decode model as a [Lux.Chain](@ref).
+- `model`: The Encode-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer, device::Function)
     encoder = Encoder(build_mlp(quantities_size, layer_size, layer_size, hidden_layers, dev=device), build_mlp(dims + 1, layer_size, layer_size, hidden_layers, dev=device))
@@ -103,8 +103,8 @@ end
 
 
 # Arguments
-- `gn`: The used [GraphNetCore.GraphNetwork](@ref).
-- `graph`: Input data stored in a [GraphNetCore.FeatureGraph](@ref).
+- `gn`: The used [`GraphNetwork`](@ref).
+- `graph`: Input data stored in a [`FeatureGraph`](@ref).
 - `target_quantities_change`: Derivatives of quantities of interest (e.g. via finite differences from data).
 - `mask`: Mask for excluding node types that should not be updated.
 - `loss_function`: Loss function that is used to calculate the error.
@@ -124,13 +124,13 @@ end
 """
     save!(gn, opt_state, df_train::DataFrame, df_valid::DataFrame, step::Integer, train_loss::Float32, path::String; is_training = true)
 
-Creates a checkpoint of the [GraphNetCore.GraphNetwork](@ref) at the given training step.
+Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 
 # Arguments
-- `gn`: The [GraphNetCore.GraphNetwork](@ref) that a checkpoint is created of.
+- `gn`: The [`GraphNetwork`](@ref) that a checkpoint is created of.
 - `opt_state`: State of the optimiser.
-- `df_train`: [DataFrames.DataFram](@ref) that stores the train losses at the checkpoints.
-- `df_valid`: [DataFrames.DataFram](@ref) that stores the validation losses at the checkpoints (only improvements are saved).
+- `df_train`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame that stores the train losses at the checkpoints.
+- `df_valid`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame that stores the validation losses at the checkpoints (only improvements are saved).
 - `step`: Current training step where the checkpoint is created.
 - `train_loss`: Current training loss.
 - `path`: Path to the folder where checkpoints are saved.
@@ -178,7 +178,7 @@ end
 """
     load(quantities, dims, norms, output, message_steps, ls, hl, opt, device::Function, path::String)
 
-Loads the [GraphNetCore.GraphNetwork](@ref) from the latest checkpoint at the given path. 
+Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path. 
 
 # Arguments
 - `quantities`: Sum of dimensions of each node feature.
@@ -189,14 +189,14 @@ Loads the [GraphNetCore.GraphNetwork](@ref) from the latest checkpoint at the gi
 - `ls`: Size of hidden layers.
 - `hl`: Number of hidden layers.
 - `opt`: Optimiser that is used for training. Set this to `nothing` if you want to use the optimiser from the checkpoint.
-- `device`: Device where the model should be loaded (see [Lux.gpu_device()](@ref) and [Lux.cpu_device()](@ref)).
+- `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 - `path`: Path to the folder where the checkpoint is.
 
 # Returns
-- `gn`: The loaded [GraphNetCore.GraphNetwork](@ref) from the checkpoint.
+- `gn`: The loaded [`GraphNetwork`](@ref) from the checkpoint.
 - `opt_state`: The loaded optimiser state. Is nothing if no checkpoint was found or an optimiser was passed as an argument.
-- `df_train`: [DataFrames.DataFram](@ref) containing the train losses at the checkpoints.
-- `df_valid`: [DataFrames.DataFram](@ref) containing the validation losses at the checkpoints (only improvements are saved).
+- `df_train`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
+- `df_valid`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
 """
 function load(quantities, dims, norms, output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))
