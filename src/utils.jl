@@ -14,7 +14,7 @@ Converts the given faces of a mesh to edges.
 - `faces`: Two-dimensional array with the node indices in the first dimension.
 
 # Returns
-- A tuple containing the edge pairs. (See [parse_edges](@ref))
+- A tuple containing the edge pairs. (See [`parse_edges`](@ref))
 """
 function triangles_to_edges(faces::AbstractArray{T, 2} where T <: Integer)
     edges = hcat(faces[1:2, :], faces[2:3, :], permutedims(hcat(faces[3, :], faces[1, :])))
@@ -94,7 +94,7 @@ end
 """
     mse_reduce(target, output)
 
-Calculates the mean squared error of the given arguments with [Tullio](@ref) for GPU compatibility.
+Calculates the mean squared error of the given arguments with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
 
 # Arguments
 - `target`: Ground truth from the data.
@@ -111,7 +111,7 @@ end
 """
     tullio_reducesum(a, dims)
 
-Implementation of the function [reducesum](@ref) with [Tullio](@ref) for GPU compatibility.
+Implementation of the function [`reducesum`](@ref) with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
 
 # Arguments
 - `a`: Array as input for reducesum.
