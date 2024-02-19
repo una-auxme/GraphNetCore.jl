@@ -31,9 +31,9 @@ mutable struct GraphNetwork
     model
     ps
     st
-    e_norm::NormaliserOnline
+    e_norm::Union{NormaliserOffline, NormaliserOnline}
     n_norm::Dict{String, Union{NormaliserOffline, NormaliserOnline}}
-    o_norm::NormaliserOnline
+    o_norm::Dict{String, Union{NormaliserOffline, NormaliserOnline}}
 end
 
 function build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm=true, dev=cpu) where T <: Integer
@@ -198,7 +198,7 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 - `df_train`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
 - `df_valid`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
 """
-function load(quantities, dims, norms, output, message_steps, ls, hl, opt, device::Function, path::String)
+function load(quantities, dims, e_norms, n_norms, o_norms, output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))
         step = parse(Int, readlines(joinpath(path, "checkpoints"))[end])
         ps_data, ps_axes, st, e_norm, n_norm, o_norm, opt_state, df_train, df_valid = load(joinpath(path, "checkpoint_$step.jld2"), "ps_data", "ps_axes", "st", "e_norm", "n_norm", "o_norm", "opt_state", "df_train", "df_valid")
@@ -206,14 +206,12 @@ function load(quantities, dims, norms, output, message_steps, ls, hl, opt, devic
         ps = ComponentArray(ps_data, ps_axes) |> device
         st = st |> device
         
-        en = NormaliserOnline(e_norm, device)
-        for (k, n) in n_norm
-            norms[k] = NormaliserOnline(n, device)
-        end
-        on = NormaliserOnline(o_norm, device)
+        en = deserialize(e_norm, device)
+        nn = deserialize(n_norm, device)
+        on = deserialize(o_norm, device)
 
         model = build_model(quantities, dims, output, message_steps, ls, hl, device)
-        gn = GraphNetwork(model, ps, st, en, norms, on)
+        gn = GraphNetwork(model, ps, st, en, nn, on)
         
         if !isnothing(opt)
             return gn, nothing, df_train, df_valid
@@ -227,7 +225,7 @@ function load(quantities, dims, norms, output, message_steps, ls, hl, opt, devic
         ps = ComponentArray(ps) |> device
         st = st |> device
 
-        gn = GraphNetwork(model, ps, st, NormaliserOnline(dims + 1, device), norms, NormaliserOnline(output, device))
+        gn = GraphNetwork(model, ps, st, e_norms, n_norms, o_norms)
         
         return gn, nothing, DataFrame(step=Integer[], loss=Float32[]), DataFrame(step=Integer[], loss=Float32[])
     end
