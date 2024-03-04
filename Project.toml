@@ -1,7 +1,7 @@
 name = "GraphNetCore"
 uuid = "7809f980-de1b-4f9a-8451-85f041491431"
 authors = ["JT <julian.trommer@uni-a.de>"]
-version = "0.1.1"
+version = "0.2.0"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -29,11 +29,11 @@ KernelAbstractions = "0.9"
 Lux = "0.5"
 LuxCUDA = "0.3.1"
 NNlib = "0.9"
+Random = "1"
+Statistics = "1"
 Tullio = "0.3.7"
 Zygote = "0.6"
 cuDNN = "1.1.1"
-Random = "1"
-Statistics = "1"
 julia = "1.9"
 
 [extras]

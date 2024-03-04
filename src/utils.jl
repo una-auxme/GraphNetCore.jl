@@ -104,7 +104,7 @@ Calculates the mean squared error of the given arguments with [Tullio](https://g
 - The calculated mean squared error.
 """
 mse_reduce(target, output) = begin
-    @assert ndims(target) == 2 && ndims(output) == 2 "Only supported dimension is 2: dims = (target => $(dims(target)), output => $(dims(output))"
+    @assert ndims(target) == 2 && ndims(output) == 2 "Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"
     @tullio R[x] := (target[y, x] - output[y, x]) ^ 2
 end
 

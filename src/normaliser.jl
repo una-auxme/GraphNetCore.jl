@@ -26,7 +26,11 @@ function NormaliserOffline(data_min::Float32, data_max::Float32)
     NormaliserOffline(data_min, data_max, 0.0f0, 1.0f0)
 end
 
-(n::NormaliserOffline)(F, is_training = false) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
+function NormaliserOffline(d::Dict{String, Any})
+    NormaliserOffline(d["data_min"], d["data_max"], d["target_min"], d["target_max"])
+end
+
+(n::NormaliserOffline)(F) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
 
 """
     inverse_data(n::NormaliserOffline, data)
@@ -153,9 +157,7 @@ end
 function serialize(ns::Dict{String, Union{NormaliserOffline, NormaliserOnline}})
     result = Dict{String, Any}()
     for (k, n) in ns
-        if typeof(n) == NormaliserOnline
-            result[k] = serialize(n)
-        end
+        result[k] = serialize(n)
     end
     return result
 end
@@ -169,4 +171,25 @@ function serialize(n::NormaliserOnline)
         "acc_sum" => cpu_device()(n.acc_sum),
         "acc_sum_squared" => cpu_device()(n.acc_sum_squared)
     )
+end
+
+function serialize(n::NormaliserOffline)
+    return Dict{String, Any}(
+        "data_min" => n.data_min,
+        "data_max" => n.data_max,
+        "target_min" => n.target_min,
+        "target_max" => n.target_max
+    )
+end
+
+function deserialize(n::Dict{String, Any}, device::Function)
+    if haskey(n, "max_accumulations")
+        return NormaliserOnline(n, device)
+    elseif haskey(n, "data_min")
+        return NormaliserOffline(n)
+    else
+        features = keys(n)
+        norms = deserialize.(values(n), device)
+        return Dict{String, Union{NormaliserOffline, NormaliserOnline}}(features .=> norms)
+    end
 end
