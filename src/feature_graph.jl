@@ -21,16 +21,58 @@ mutable struct FeatureGraph
     receivers
 end
 
+"""
+    update_features!(g::FeatureGraph; nf, ef)
+
+Updates the node and edge features of the given [`FeatureGraph`](@ref).
+
+# Arguments
+- `g`: [`FeatureGraph`](@ref) that should be updated.
+
+# Keyword Arguments
+- `nf`: Updated node features.
+- `ef`: Updated edge features.
+
+# Returns
+- `g`: The updated graph as a [`FeatureGraph`](@ref) struct.
+"""
 function update_features!(g::FeatureGraph; nf, ef)
     g.nf = nf
     g.ef = ef
     return g
 end
 
+"""
+    aggregate_edge_features(graph::FeatureGraph)
+
+Aggregates the edge features based on the senders and receivers of the given [`FeatureGraph`](@ref).
+
+# Arguments
+- `graph`: [`FeatureGraph`](@ref) which node and edge features are used.
+
+# Returns
+A two-dimensional array with the
+- 1. dimension containing the concatenated features as new edge features and the
+- 2. dimension representing the individual edges.
+"""
 @inline function aggregate_edge_features(graph::FeatureGraph)
     return vcat(graph.nf[:, graph.senders], graph.nf[:, graph.receivers], graph.ef)
 end
 
+"""
+    aggregate_node_features(graph::FeatureGraph, updated_edge_features)
+
+Aggregates the node features based on the given [`FeatureGraph`](@ref) and updated edge features.
+
+# Arguments
+- `graph`: [`FeatureGraph`](@ref) which node features are used.
+- `updated_edge_features`: New edge features that were calculated in a previous step.
+
+# Returns
+A two dimensional array with the
+- 1. dimension containing the concatenated features as new node features and the
+- 2. dimension representing the individual nodes.
+"""
 @inline function aggregate_node_features(graph::FeatureGraph, updated_edge_features)
     return vcat(graph.nf, NNlib.scatter(+, updated_edge_features, graph.receivers, dstsize = size(graph.nf)))
 end

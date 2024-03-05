@@ -19,12 +19,12 @@ include("graph_net_blocks.jl")
 The central data structure that contains the neural network and the normalisers corresponding to the components of the GNN (edge features, node features and output).
 
 # Arguments
-- `model`: The Enocde-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain.
+- `model`: The Enocde-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 - `ps`: Parameters of the model.
 - `st`: State of the model.
 - `e_norm`: Normaliser for the edge features of the GNN.
 - `n_norm`: Normaliser for the node features of the GNN, whereas each feature has its own normaliser.
-- `o_norm`: Normaliser for the output of the GNN.
+- `o_norm`: Normaliser for the output of the GNN, whereas each quantity of interest has its own normaliser.
 
 """
 mutable struct GraphNetwork
@@ -36,7 +36,24 @@ mutable struct GraphNetwork
     o_norm::Dict{String, Union{NormaliserOffline, NormaliserOnline}}
 end
 
-function build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm=true, dev=cpu) where T <: Integer
+"""
+    build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm = true) where T <: Integer
+
+Constructs a MLP with the given parameters.
+
+# Arguments
+- `input_size`: Number of inputs of the MLP.
+- `latent_size`: Dimension of the latent space and hidden layers.
+- `output_size`: Number of outputs of the MLP.
+- `hidden_layers`: Number of hidden layers.
+
+# Keyword Arguments
+- `layer_norm = true`: Wether a layer norm should be appended at the end of the MLP.
+
+# Returns
+The constructed MLP as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
+"""
+function build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm = true) where T <: Integer
     if layer_norm
         return Chain(
             Dense(input_size, latent_size, relu),
@@ -57,7 +74,7 @@ end
 """
     build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer, device::Function)
 
-Constructs the Encode-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain with the given arguments.
+Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain with the given arguments.
 
 # Arguments
 - `quantities_size`: Sum of dimensions of each node feature.
@@ -69,17 +86,17 @@ Constructs the Encode-Process-Decode model as a [Lux](https://github.com/LuxDL/L
 - `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
 # Returns
-- `model`: The Encode-Process-Decode model as a [Lux](https://github.com/LuxDL/Lux.jl) Chain.
+- `model`: The Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
-function build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer, device::Function)
-    encoder = Encoder(build_mlp(quantities_size, layer_size, layer_size, hidden_layers, dev=device), build_mlp(dims + 1, layer_size, layer_size, hidden_layers, dev=device))
+function build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer)
+    encoder = Encoder(build_mlp(quantities_size, layer_size, layer_size, hidden_layers), build_mlp(dims + 1, layer_size, layer_size, hidden_layers))
 
     processors = Vector{Processor}()
     for _ in 1:mps
-        push!(processors, Processor(build_mlp(2 * layer_size, layer_size, layer_size, hidden_layers, dev=device), build_mlp(3 * layer_size, layer_size, layer_size, hidden_layers, dev=device)))
+        push!(processors, Processor(build_mlp(2 * layer_size, layer_size, layer_size, hidden_layers), build_mlp(3 * layer_size, layer_size, layer_size, hidden_layers)))
     end
 
-    decoder = Decoder(build_mlp(layer_size, layer_size, output_size, hidden_layers; layer_norm=false, dev=device))
+    decoder = Decoder(build_mlp(layer_size, layer_size, output_size, hidden_layers; layer_norm=false))
 
 
     model = Chain(encoder, processors..., decoder)
@@ -87,7 +104,23 @@ function build_model(quantities_size::Integer, dims, output_size::Integer, mps::
     return model
 end
 
-function loss(ps, gn, graph::FeatureGraph, target::AbstractArray{Float32, 2}, mask::AbstractArray{T, 1}, loss_function) where T <: Integer
+"""
+    loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2}, mask::AbstractArray{T, 1}, loss_function) where T <: Integer
+
+Calculates the loss of the network based on the given loss function.
+
+# Arguments
+- `ps`: Parameters of the network.
+- `gn`: [`GraphNetwork`](@ref) that contains the network.
+- `graph`: [`FeatureGraph`](@ref) that contains the edge and node features.
+- `target`: Ground truth data that is used for comparison to the network output.
+- `mask`: Mask that filters which node types contribute to the loss.
+- `loss_function`: Function used for calculating the loss.
+
+# Returns
+- `loss`: The calculated loss.
+"""
+function loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2}, mask::AbstractArray{T, 1}, loss_function) where T <: Integer
     output, st = gn.model(graph, ps, gn.st)
     gn.st = st
     
@@ -100,7 +133,6 @@ end
 
 """
     step!(gn, graph, target_quantities_change, mask, loss_function)
-
 
 # Arguments
 - `gn`: The used [`GraphNetwork`](@ref).
@@ -183,7 +215,9 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 # Arguments
 - `quantities`: Sum of dimensions of each node feature.
 - `dims`: Dimension of the mesh.
-- `norms`: Normalisers for node features.
+- `e_norms`: Normalisers for edge features.
+- `n_norms`: Normalisers for node features.
+- `o_norms`: Normalisers for output features.
 - `output`: Sum of dimensions of output quantities.
 - `message_steps`: Number of message passing steps.
 - `ls`: Size of hidden layers.
@@ -210,7 +244,7 @@ function load(quantities, dims, e_norms, n_norms, o_norms, output, message_steps
         nn = deserialize(n_norm, device)
         on = deserialize(o_norm, device)
 
-        model = build_model(quantities, dims, output, message_steps, ls, hl, device)
+        model = build_model(quantities, dims, output, message_steps, ls, hl)
         gn = GraphNetwork(model, ps, st, en, nn, on)
         
         if !isnothing(opt)
@@ -219,7 +253,7 @@ function load(quantities, dims, e_norms, n_norms, o_norms, output, message_steps
             return gn, device(opt_state), df_train, df_valid
         end
     else
-        model = build_model(quantities, dims, output, message_steps, ls, hl, device)
+        model = build_model(quantities, dims, output, message_steps, ls, hl)
         ps, st = Lux.setup(Random.default_rng(), model)
 
         ps = ComponentArray(ps) |> device
