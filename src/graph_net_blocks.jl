@@ -19,7 +19,7 @@ function encode!(layers::NamedTuple{fields}, graph, ps, st::NamedTuple{fields}) 
     nf, stn = Lux.apply(layers[:node_model_fn], graph.nf, ps[:node_model_fn], st[:node_model_fn])
     ef, ste = Lux.apply(layers[:edge_model_fn], graph.ef, ps[:edge_model_fn], st[:edge_model_fn])
     new_st = NamedTuple{fields}((stn, ste))
-    update_features!(graph; nf = nf, ef = ef), new_st
+    return update_features!(graph; nf = nf, ef = ef), new_st
 end
 
 
