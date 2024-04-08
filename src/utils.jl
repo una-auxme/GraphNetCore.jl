@@ -6,15 +6,15 @@
 using KernelAbstractions
 
 """
-    triangles_to_edges(faces::AbstractArray{T, 2} where T <: Integer)
+    triangles_to_edges(faces)
 
 Converts the given faces of a mesh to edges.
 
-# Arguments
+## Arguments
 - `faces`: Two-dimensional array with the node indices in the first dimension.
 
-# Returns
-- A tuple containing the edge pairs. (See [`parse_edges`](@ref))
+## Returns
+- Tuple containing the edge pairs. (See [`parse_edges`](@ref))
 """
 function triangles_to_edges(faces::AbstractArray{T, 2} where T <: Integer)
     edges = hcat(faces[1:2, :], faces[2:3, :], permutedims(hcat(faces[3, :], faces[1, :])))
@@ -26,11 +26,11 @@ end
 
 Converts the given edges to unique pairs of senders and receivers (in both directions).
 
-# Arguments
-- `edges`: A two-dimensional Array containing the edges. The first dimension represents a sender-receiver pair.
+## Arguments
+- `edges`: Two-dimensional Array containing the edges. The first dimension represents a sender-receiver pair.
 
-# Returns
-- A tuple containing the bi-directional sender-receiver pairs. The first index is one direction, the second index the other one.
+## Returns
+- Tuple containing the bi-directional sender-receiver pairs. The first index is one direction, the second index the other one.
 """
 function parse_edges(edges)
     receivers = minimum(edges, dims=1)
@@ -48,13 +48,13 @@ end
 
 Constructs a onehot matrix of Bool with the given indices.
 
-# Arguments
+## Arguments
 - `indices`: Indices for the onehot matrix.
 - `depth`: Depth of the matrix. The second dimension will be clipped or padded with zeros to the depth.
 - `offset = 0`: Offset of the matrix in the second dimension.
 
-# Returns
-- `result`: The onehot matrix from the given arguments.
+## Returns
+- Onehot matrix from the given arguments.
 """
 function one_hot(indices, depth, offset = 0)
     result = zeros(Bool, depth, length(indices))
@@ -67,19 +67,19 @@ function one_hot(indices, depth, offset = 0)
 end
 
 """
-    minmaxnorm(input::AbstractArray, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
+    minmaxnorm(input, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
 
 Normalizes the given input to the new given range.
 
-# Arguments
+## Arguments
 - `input`: Data that should be normalized.
 - `input_min`: Minimum of the given data.
 - `input_max`: Maximum of the given data.
 - `new_min = 0.0f0`: New minimum of the normalized data.
 - `new_max = 1.0f0`: New maximum of the normalized data.
 
-# Returns
-- The normalized data.
+## Returns
+- Normalized data.
 """
 function minmaxnorm(input::AbstractArray, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
     @assert input_min <= input_max "minimum of input has to be lower than or equal to maximum of input : $input_min > $input_max"
@@ -96,12 +96,12 @@ end
 
 Calculates the mean squared error of the given arguments with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
 
-# Arguments
+## Arguments
 - `target`: Ground truth from the data.
 - `output`: Output of the network.
 
-# Returns
-- The calculated mean squared error.
+## Returns
+- Calculated mean squared error.
 """
 mse_reduce(target, output) = begin
     @assert ndims(target) == 2 && ndims(output) == 2 "Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"
@@ -113,12 +113,12 @@ end
 
 Implementation of the function [`reducesum`](@ref) with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
 
-# Arguments
+## Arguments
 - `a`: Array as input for reducesum.
 - `dims`: Along which dimension should be reduced. Only dimension 1 and 2 are supported.
 
-# Returns
-- The reduced array.
+## Returns
+- Reduced array.
 """
 tullio_reducesum(a, dims) = begin
     @assert dims == 1 || dims == 2 "Only supported dims are 1 and 2: dims = $dims"
