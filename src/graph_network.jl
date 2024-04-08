@@ -18,14 +18,13 @@ include("graph_net_blocks.jl")
 
 The central data structure that contains the neural network and the normalisers corresponding to the components of the GNN (edge features, node features and output).
 
-# Arguments
-- `model`: The Enocde-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
+## Arguments
+- `model`: Enocde-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 - `ps`: Parameters of the model.
 - `st`: State of the model.
 - `e_norm`: Normaliser for the edge features of the GNN.
 - `n_norm`: Normaliser for the node features of the GNN, whereas each feature has its own normaliser.
 - `o_norm`: Normaliser for the output of the GNN, whereas each quantity of interest has its own normaliser.
-
 """
 mutable struct GraphNetwork
     model
@@ -37,21 +36,21 @@ mutable struct GraphNetwork
 end
 
 """
-    build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm = true) where T <: Integer
+    build_mlp(input_size, latent_size, output_size, hidden_layers; layer_norm = true)
 
 Constructs a MLP with the given parameters.
 
-# Arguments
+## Arguments
 - `input_size`: Number of inputs of the MLP.
 - `latent_size`: Dimension of the latent space and hidden layers.
 - `output_size`: Number of outputs of the MLP.
 - `hidden_layers`: Number of hidden layers.
 
-# Keyword Arguments
+## Keyword Arguments
 - `layer_norm = true`: Wether a layer norm should be appended at the end of the MLP.
 
-# Returns
-The constructed MLP as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
+## Returns
+- MLP constructed as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_mlp(input_size::T, latent_size::T, output_size::T, hidden_layers::T; layer_norm = true) where T <: Integer
     if layer_norm
@@ -72,11 +71,11 @@ end
 
 
 """
-    build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer, device::Function)
+    build_model(quantities_size, dims, output_size, mps, layer_size, hidden_layers, device)
 
 Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain with the given arguments.
 
-# Arguments
+## Arguments
 - `quantities_size`: Sum of dimensions of each node feature.
 - `dims`: Dimension of the mesh.
 - `output_size`: Sum of dimensions of output quantities.
@@ -85,8 +84,8 @@ Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxD
 - `hidden_layers`: Number of hidden layers.
 - `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
-# Returns
-- `model`: The Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
+## Returns
+- Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_model(quantities_size::Integer, dims, output_size::Integer, mps::Integer, layer_size::Integer, hidden_layers::Integer)
     encoder = Encoder(build_mlp(quantities_size, layer_size, layer_size, hidden_layers), build_mlp(dims + 1, layer_size, layer_size, hidden_layers))
@@ -105,11 +104,11 @@ function build_model(quantities_size::Integer, dims, output_size::Integer, mps::
 end
 
 """
-    loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2}, mask::AbstractArray{T, 1}, loss_function) where T <: Integer
+    loss(ps, gn, graph, target, mask, loss_function)
 
 Calculates the loss of the network based on the given loss function.
 
-# Arguments
+## Arguments
 - `ps`: Parameters of the network.
 - `gn`: [`GraphNetwork`](@ref) that contains the network.
 - `graph`: [`FeatureGraph`](@ref) that contains the edge and node features.
@@ -117,8 +116,8 @@ Calculates the loss of the network based on the given loss function.
 - `mask`: Mask that filters which node types contribute to the loss.
 - `loss_function`: Function used for calculating the loss.
 
-# Returns
-- `loss`: The calculated loss.
+## Returns
+- Calculated Loss.
 """
 function loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2}, mask::AbstractArray{T, 1}, loss_function) where T <: Integer
     output, st = gn.model(graph, ps, gn.st)
@@ -134,16 +133,16 @@ end
 """
     step!(gn, graph, target_quantities_change, mask, loss_function)
 
-# Arguments
-- `gn`: The used [`GraphNetwork`](@ref).
+## Arguments
+- `gn`: [`GraphNetwork`](@ref) that is used.
 - `graph`: Input data stored in a [`FeatureGraph`](@ref).
 - `target_quantities_change`: Derivatives of quantities of interest (e.g. via finite differences from data).
 - `mask`: Mask for excluding node types that should not be updated.
 - `loss_function`: Loss function that is used to calculate the error.
 
-# Returns
-- `gs`: The calculated gradients.
-- `train_loss`: The calculated training loss.
+## Returns
+- Calculated gradients.
+- Calculated training loss.
 """
 function step!(gn, graph, target_quantities_change, mask, loss_function)
     train_loss, back = pullback(ps -> loss(ps, gn, graph, target_quantities_change, mask, loss_function), gn.ps) 
@@ -154,12 +153,12 @@ function step!(gn, graph, target_quantities_change, mask, loss_function)
 end
 
 """
-    save!(gn, opt_state, df_train::DataFrame, df_valid::DataFrame, step::Integer, train_loss::Float32, path::String; is_training = true)
+    save!(gn, opt_state, df_train, df_valid, step, train_loss, path; is_training = true)
 
 Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 
-# Arguments
-- `gn`: The [`GraphNetwork`](@ref) that a checkpoint is created of.
+## Arguments
+- `gn`: [`GraphNetwork`](@ref) that a checkpoint is created of.
 - `opt_state`: State of the optimiser.
 - `df_train`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame that stores the train losses at the checkpoints.
 - `df_valid`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame that stores the validation losses at the checkpoints (only improvements are saved).
@@ -167,7 +166,7 @@ Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 - `train_loss`: Current training loss.
 - `path`: Path to the folder where checkpoints are saved.
 
-# Keyword Arguments
+## Keyword Arguments
 - `is_training = true`: True if used in training, false otherwise (in validation).
 """
 function save!(gn, opt_state, df_train::DataFrame, df_valid::DataFrame, step::Integer, train_loss::Float32, path::String; is_training = true)
@@ -208,11 +207,11 @@ function save!(gn, opt_state, df_train::DataFrame, df_valid::DataFrame, step::In
 end
 
 """
-    load(quantities, dims, norms, output, message_steps, ls, hl, opt, device::Function, path::String)
+    load(quantities, dims, norms, output, message_steps, ls, hl, opt, device, path)
 
 Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path. 
 
-# Arguments
+## Arguments
 - `quantities`: Sum of dimensions of each node feature.
 - `dims`: Dimension of the mesh.
 - `e_norms`: Normalisers for edge features.
@@ -226,11 +225,11 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 - `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 - `path`: Path to the folder where the checkpoint is.
 
-# Returns
-- `gn`: The loaded [`GraphNetwork`](@ref) from the checkpoint.
-- `opt_state`: The loaded optimiser state. Is nothing if no checkpoint was found or an optimiser was passed as an argument.
-- `df_train`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
-- `df_valid`: [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
+## Returns
+- [`GraphNetwork`](@ref) that is loaded from the checkpoint.
+- Loaded Optimiser state. Is nothing if no checkpoint was found or an optimiser was passed as an argument.
+- [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
+- [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
 """
 function load(quantities, dims, e_norms, n_norms, o_norms, output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))

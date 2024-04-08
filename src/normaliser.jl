@@ -4,12 +4,12 @@
 #
 
 """
-    NormaliserOffline(data_min::Float32, data_max::Float32, target_min::Float32 = 0.0f0, target_max::Float32 = 0.0f0)
+    NormaliserOffline(data_min, data_max, target_min = 0.0f0, target_max = 0.0f0)
 
 Offline normalization if the minimum and maximum of the quantity is known (e.g. from the training data).
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
 
-# Arguments
+## Arguments
 - `data_min`: Minimum of the quantity in the dataset.
 - `data_max`: Maximum of the quantity in the dataset.
 - `target_min`: Minimum of the target of normalization.
@@ -33,28 +33,28 @@ end
 (n::NormaliserOffline)(F) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
 
 """
-    inverse_data(n::NormaliserOffline, data)
+    inverse_data(n, data)
 
 Inverses the normalised data.
 
-# Arguments
-- `n`: The used [`NormaliserOffline`](@ref).
+## Arguments
+- `n`: Used [`NormaliserOffline`](@ref).
 - `data`: Data to be converted back.
 
-# Returns
-- The converted data.
+## Returns
+- Converted data.
 """
 function inverse_data(n::NormaliserOffline, data)
     return minmaxnorm(data, n.target_min, n.target_max, n.data_min, n.data_max)
 end
 
 """
-    NormaliserOnline(max_accumulations::Float32, std_epsilon::Float32, acc_count::Float32, num_accumulations::Float32, acc_sum::AbstractArray{Float32}, acc_sum_squared::AbstractArray{Float32})
+    NormaliserOnline(max_accumulations, std_epsilon, acc_count, num_accumulations, acc_sum, acc_sum_squared)
 
 Online normalization if the minimum and maximum of the quantity is not known.
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
 
-# Arguments
+## Arguments
 - `max_accumulations`: Maximum number of accumulation steps.
 - `std_epsilon`: Epsilon for caluclating the standard deviation.
 - `acc_count`: Sum of dimensions of quantities in each accumulation step.
@@ -72,16 +72,16 @@ mutable struct NormaliserOnline
 end
 
 """
-    NormaliserOnline(dim::Integer, device::Function; max_acc::Float32 = 10f6, std_ep::Float32 = 1f-8)
+    NormaliserOnline(dim, device; max_acc = 10f6, std_ep = 1f-8)
 
 Online normalization if the minimum and maximum of the quantity is not known.
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
 
-# Arguments
+## Arguments
 - `dims`: Dimension of the quantity to normalize.
-- `device`: Device where the Normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
+- `device`: Device where the normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
-# Keyword Arguments
+## Keyword Arguments
 - `max_acc = 10f6`: Maximum number of accumulation steps.
 - `std_epsilon = 1f-8`: Epsilon for caluclating the standard deviation.
 """
@@ -90,14 +90,14 @@ function NormaliserOnline(dim::Integer, device::Function; max_acc::Float32 = 10f
 end
 
 """
-    NormaliserOnline(d::Dict{String, Any}, device::Function)
+    NormaliserOnline(d, device)
 
 Online normalization if the minimum and maximum of the quantity is not known.
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
 
-# Arguments
+## Arguments
 - `d`: Dictionary containing the fields of the struct [`NormaliserOnline`](@ref).
-- `device`: Device where the Normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
+- `device`: Device where the normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 """
 function NormaliserOnline(d::Dict{String, Any}, device::Function)
     NormaliserOnline(d["max_accumulations"], d["std_epsilon"], d["acc_count"], d["num_accumulations"], device(d["acc_sum"]), device(d["acc_sum_squared"]))
@@ -113,16 +113,16 @@ end
 end
 
 """
-    inverse_data(n::NormaliserOnline, data)
+    inverse_data(n, data)
 
 Inverses the normalised data.
 
-# Arguments
-- `n`: The used [`NormaliserOnline`](@ref).
+## Arguments
+- `n`: Used [`NormaliserOnline`](@ref).
 - `data`: Data to be converted back.
 
-# Returns
-- The converted data.
+## Returns
+- Converted data.
 """
 function inverse_data(n::NormaliserOnline, data)
     return data .* get_std_with_epsilon(n) .+ get_mean(n)
