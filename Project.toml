@@ -1,7 +1,7 @@
 name = "GraphNetCore"
 uuid = "7809f980-de1b-4f9a-8451-85f041491431"
 authors = ["JT <julian.trommer@uni-a.de>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
