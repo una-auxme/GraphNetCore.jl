@@ -71,7 +71,7 @@ end
 
 
 """
-    build_model(quantities_size, dims, output_size, mps, layer_size, hidden_layers, device)
+    build_model(quantities_size, dims, output_size, mps, layer_size, hidden_layers)
 
 Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain with the given arguments.
 
@@ -82,7 +82,6 @@ Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxD
 - `mps`: Number of message passing steps.
 - `layer_size`: Size of hidden layers.
 - `hidden_layers`: Number of hidden layers.
-- `device`: Device where the model should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 
 ## Returns
 - Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
