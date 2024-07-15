@@ -3,8 +3,10 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+abstract type NormaliserOffline end
+
 """
-    NormaliserOffline(data_min, data_max, target_min = 0.0f0, target_max = 0.0f0)
+    NormaliserOfflineMinMax(data_min, data_max, target_min = 0.0f0, target_max = 0.0f0)
 
 Offline normalization if the minimum and maximum of the quantity is known (e.g. from the training data).
 It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
@@ -15,22 +17,22 @@ It is recommended to use offline normalization since the minimum and maximum do 
 - `target_min`: Minimum of the target of normalization.
 - `target_max`: Maximum of the target of normalization.
 """
-mutable struct NormaliserOffline
+mutable struct NormaliserOfflineMinMax <: NormaliserOffline
     data_min::Float32
     data_max::Float32
     target_min::Float32
     target_max::Float32
 end
 
-function NormaliserOffline(data_min::Float32, data_max::Float32)
-    NormaliserOffline(data_min, data_max, 0.0f0, 1.0f0)
+function NormaliserOfflineMinMax(data_min::Float32, data_max::Float32)
+    NormaliserOfflineMinMax(data_min, data_max, 0.0f0, 1.0f0)
 end
 
-function NormaliserOffline(d::Dict{String, Any})
-    NormaliserOffline(d["data_min"], d["data_max"], d["target_min"], d["target_max"])
+function NormaliserOfflineMinMax(d::Dict{String, Any})
+    NormaliserOfflineMinMax(d["data_min"], d["data_max"], d["target_min"], d["target_max"])
 end
 
-(n::NormaliserOffline)(F) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
+(n::NormaliserOfflineMinMax)(F) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
 
 """
     inverse_data(n, data)
@@ -38,14 +40,57 @@ end
 Inverses the normalised data.
 
 ## Arguments
-- `n`: Used [`NormaliserOffline`](@ref).
+- `n`: Used [`NormaliserOfflineMinMax`](@ref).
 - `data`: Data to be converted back.
 
 ## Returns
 - Converted data.
 """
-function inverse_data(n::NormaliserOffline, data)
+function inverse_data(n::NormaliserOfflineMinMax, data)
     return minmaxnorm(data, n.target_min, n.target_max, n.data_min, n.data_max)
+end
+
+
+"""
+    NormaliserOfflineMeanStd(data_mean, data_std)
+
+Offline normalization if the mean and standard deviation of the quantity is known (e.g. from the training data).
+It is recommended to use offline normalization since the minimum and maximum do not need to be inferred from data.
+
+## Arguments
+- `data_mean`: Mean of the quantity in the dataset.
+- `data_std`: Standard deviation of the quantity in the dataset.
+"""
+mutable struct NormaliserOfflineMeanStd <: NormaliserOffline
+    data_mean::Float32
+    data_std::Float32
+    std_epsilon::Float32
+end
+
+function NormaliserOfflineMeanStd(data_mean::Float32, data_std::Float32)
+    NormaliserOfflineMeanStd(data_mean, data_std, 1f-8)
+end
+
+function NormaliserOfflineMeanStd(d::Dict{String, Any})
+    NormaliserOfflineMeanStd(d["data_mean"], d["data_std"], haskey(d, "std_epsilon") ? d["std_epsilon"] : 1f-8)
+end
+
+(n::NormaliserOfflineMeanStd)(F) = (F .- n.data_mean) ./ max(n.data_std, n.std_epsilon)
+
+"""
+    inverse_data(n, data)
+
+Inverses the normalised data.
+
+## Arguments
+- `n`: Used [`NormaliserOfflineMeanStd`](@ref).
+- `data`: Data to be converted back.
+
+## Returns
+- Converted data.
+"""
+function inverse_data(n::NormaliserOfflineMeanStd, data)
+    return data .* max(n.data_std, n.std_epsilon) .+ n.data_mean
 end
 
 """
@@ -173,7 +218,7 @@ function serialize(n::NormaliserOnline)
     )
 end
 
-function serialize(n::NormaliserOffline)
+function serialize(n::NormaliserOfflineMinMax)
     return Dict{String, Any}(
         "data_min" => n.data_min,
         "data_max" => n.data_max,
@@ -182,11 +227,20 @@ function serialize(n::NormaliserOffline)
     )
 end
 
+function serialize(n::NormaliserOfflineMeanStd)
+    return Dict{String, Any}(
+        "data_mean" => n.data_mean,
+        "data_std" => n.data_std
+    )    
+end
+
 function deserialize(n::Dict{String, Any}, device::Function)
     if haskey(n, "max_accumulations")
         return NormaliserOnline(n, device)
     elseif haskey(n, "data_min")
-        return NormaliserOffline(n)
+        return NormaliserOfflineMinMax(n)
+    elseif haskey(n, "data_mean")
+        return NormaliserOfflineMeanStd(n)
     else
         features = keys(n)
         norms = deserialize.(values(n), device)
