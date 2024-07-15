@@ -69,7 +69,7 @@ import Random: MersenneTwister
     end
 
     @testset "normaliser.jl" begin
-        norm_off = NormaliserOffline(-10.0f0, 10.0f0, -1.0f0, 1.0f0)
+        norm_off = NormaliserOfflineMinMax(-10.0f0, 10.0f0, -1.0f0, 1.0f0)
         norm_on_cpu = NormaliserOnline(Dict{String, Any}(
             "max_accumulations" => 10000,
             "std_epsilon" => 1f-8,
