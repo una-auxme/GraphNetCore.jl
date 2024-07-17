@@ -230,7 +230,7 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 - [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
 - [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
 """
-function load(quantities, dims, e_norms, n_norms, o_norms, output, message_steps, ls, hl, opt, device::Function, path::String)
+function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnline}, n_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}}, o_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}}, output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))
         step = parse(Int, readlines(joinpath(path, "checkpoints"))[end])
         ps_data, ps_axes, st, e_norm, n_norm, o_norm, opt_state, df_train, df_valid = load(joinpath(path, "checkpoint_$step.jld2"), "ps_data", "ps_axes", "st", "e_norm", "n_norm", "o_norm", "opt_state", "df_train", "df_valid")

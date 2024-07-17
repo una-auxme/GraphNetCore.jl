@@ -5,6 +5,7 @@
 
 using GraphNetCore
 using Test
+using Aqua
 
 using CUDA, cuDNN, Lux
 
@@ -17,6 +18,15 @@ import Random: MersenneTwister
     !hascuda && @warn "No CUDA installation detected! Skipping GPU tests..."
 
     cpu = cpu_device()
+
+    @testset "Aqua.jl" begin
+        # TODO remove ambiguity in load
+        # Ambiguities in external packages
+        @testset "Method ambiguity" begin
+            Aqua.test_ambiguities([GraphNetCore]; broken = true)
+        end
+        Aqua.test_all(GraphNetCore; ambiguities = false)
+    end
 
     @testset "utils.jl" begin
         #   3 - 4
