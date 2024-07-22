@@ -19,7 +19,8 @@ export FeatureGraph
 # graph_network.jl
 export GraphNetwork
 # normaliser.jl
-export NormaliserOffline, NormaliserOfflineMinMax, NormaliserOfflineMeanStd, NormaliserOnline
+export NormaliserOffline, NormaliserOfflineMinMax, NormaliserOfflineMeanStd,
+       NormaliserOnline
 
 # graph_network.jl
 export build_model, step!, save!, load
