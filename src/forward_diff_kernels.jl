@@ -107,6 +107,7 @@ function copy_dual_to_matrix_kernel(
             src[loc...] = dst[loc[1:(end - 1)]...].partials[loc[end] - 1]
         end
     end
+
     return nothing
 end
 
@@ -149,5 +150,6 @@ function dual_kernel(dst::CuDeviceArray{<:Dual{T, V, N}}, v::CuDeviceArray{V},
         loc = Tuple(ci[index])
         dst[loc...] = Dual{T, V, N}(v[loc...], Partials{N, V}(src[loc...]))
     end
+
     return nothing
 end
