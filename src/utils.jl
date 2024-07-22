@@ -16,8 +16,9 @@ Converts the given faces of a mesh to edges.
 ## Returns
 - Tuple containing the edge pairs. (See [`parse_edges`](@ref))
 """
-function triangles_to_edges(faces::AbstractArray{T, 2} where T <: Integer)
+function triangles_to_edges(faces::AbstractArray{T, 2} where {T <: Integer})
     edges = hcat(faces[1:2, :], faces[2:3, :], permutedims(hcat(faces[3, :], faces[1, :])))
+
     return parse_edges(edges)
 end
 
@@ -33,10 +34,10 @@ Converts the given edges to unique pairs of senders and receivers (in both direc
 - Tuple containing the bi-directional sender-receiver pairs. The first index is one direction, the second index the other one.
 """
 function parse_edges(edges)
-    receivers = minimum(edges, dims=1)
-    senders = maximum(edges, dims=1)
+    receivers = minimum(edges; dims = 1)
+    senders = maximum(edges; dims = 1)
     packed_edges = vcat(senders, receivers)
-    unique_edges = unique(packed_edges, dims=2)
+    unique_edges = unique(packed_edges; dims = 2)
     senders = unique_edges[1, :]
     receivers = unique_edges[2, :]
 
@@ -63,6 +64,7 @@ function one_hot(indices, depth, offset = 0)
             result[x + offset, i] = 1
         end
     end
+
     return result
 end
 
@@ -81,13 +83,16 @@ Normalizes the given input to the new given range.
 ## Returns
 - Normalized data.
 """
-function minmaxnorm(input::AbstractArray, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
-    @assert input_min <= input_max "minimum of input has to be lower than or equal to maximum of input : $input_min > $input_max"
-    @assert new_min <= new_max "minimum of output has to be lower than or equal to maximum of output : $new_min > $new_max"
+function minmaxnorm(
+        input::AbstractArray, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
+    @assert input_min<=input_max "minimum of input has to be lower than or equal to maximum of input : $input_min > $input_max"
+    @assert new_min<=new_max "minimum of output has to be lower than or equal to maximum of output : $new_min > $new_max"
     if input_min == input_max
-        return typeof(input) <: CuArray ? gpu_device()(zeros(Float32, size(input))) : zeros(Float32, size(input))
+        return typeof(input) <: CuArray ? gpu_device()(zeros(Float32, size(input))) :
+               zeros(Float32, size(input))
     else
-        return ((input .- input_min) / (input_max - input_min)) * (new_max - new_min) .+ new_min
+        return ((input .- input_min) / (input_max - input_min)) * (new_max - new_min) .+
+               new_min
     end
 end
 
@@ -104,8 +109,10 @@ Calculates the mean squared error of the given arguments with [Tullio](https://g
 - Calculated mean squared error.
 """
 mse_reduce(target, output) = begin
-    @assert ndims(target) == 2 && ndims(output) == 2 "Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"
-    @tullio R[x] := (target[y, x] - output[y, x]) ^ 2
+    if ndims(target) != 2 || ndims(output) != 2
+        throw(ArgumentError("Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"))
+    end
+    @tullio R[x] := (target[y, x] - output[y, x])^2
 end
 
 """
@@ -121,7 +128,9 @@ Implementation of the function [`reducesum`](@ref) with [Tullio](https://github.
 - Reduced array.
 """
 tullio_reducesum(a, dims) = begin
-    @assert dims == 1 || dims == 2 "Only supported dims are 1 and 2: dims = $dims"
+    if dims != 1 && dims != 2
+        throw(ArgumentError("Only supported dims are 1 and 2: dims = $dims"))
+    end
     if dims == 1
         @tullio R[1, x] := a[y, x]
     elseif dims == 2

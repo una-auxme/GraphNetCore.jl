@@ -14,11 +14,11 @@ Data structure that is used as an input for the [`GraphNetwork`](@ref).
 - `senders`: List of nodes in the mesh where graph edges start.
 - `receivers`: List of nodes in the mesh where graph edges end.
 """
-mutable struct FeatureGraph
-    nf
-    ef
-    senders
-    receivers
+mutable struct FeatureGraph{F <: AbstractArray, T <: AbstractArray}
+    nf::F
+    ef::F
+    senders::T
+    receivers::T
 end
 
 """
@@ -39,6 +39,7 @@ Updates the node and edge features of the given [`FeatureGraph`](@ref).
 function update_features!(g::FeatureGraph; nf, ef)
     g.nf = nf
     g.ef = ef
+
     return g
 end
 
@@ -74,5 +75,6 @@ Aggregates the node features based on the given [`FeatureGraph`](@ref) and updat
     - 2. dimension representing the individual nodes.
 """
 @inline function aggregate_node_features(graph::FeatureGraph, updated_edge_features)
-    return vcat(graph.nf, NNlib.scatter(+, updated_edge_features, graph.receivers, dstsize = size(graph.nf)))
+    return vcat(graph.nf,
+        NNlib.scatter(+, updated_edge_features, graph.receivers; dstsize = size(graph.nf)))
 end

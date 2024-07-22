@@ -32,7 +32,9 @@ function NormaliserOfflineMinMax(d::Dict{String, Any})
     NormaliserOfflineMinMax(d["data_min"], d["data_max"], d["target_min"], d["target_max"])
 end
 
-(n::NormaliserOfflineMinMax)(F) = minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
+function (n::NormaliserOfflineMinMax)(F)
+    minmaxnorm(F, n.data_min, n.data_max, n.target_min, n.target_max)
+end
 
 """
     inverse_data(n, data)
@@ -49,7 +51,6 @@ Inverses the normalised data.
 function inverse_data(n::NormaliserOfflineMinMax, data)
     return minmaxnorm(data, n.target_min, n.target_max, n.data_min, n.data_max)
 end
-
 
 """
     NormaliserOfflineMeanStd(data_mean, data_std)
@@ -68,11 +69,12 @@ mutable struct NormaliserOfflineMeanStd <: NormaliserOffline
 end
 
 function NormaliserOfflineMeanStd(data_mean::Float32, data_std::Float32)
-    NormaliserOfflineMeanStd(data_mean, data_std, 1f-8)
+    NormaliserOfflineMeanStd(data_mean, data_std, 1.0f-8)
 end
 
 function NormaliserOfflineMeanStd(d::Dict{String, Any})
-    NormaliserOfflineMeanStd(d["data_mean"], d["data_std"], haskey(d, "std_epsilon") ? d["std_epsilon"] : 1f-8)
+    NormaliserOfflineMeanStd(
+        d["data_mean"], d["data_std"], haskey(d, "std_epsilon") ? d["std_epsilon"] : 1.0f-8)
 end
 
 (n::NormaliserOfflineMeanStd)(F) = (F .- n.data_mean) ./ max(n.data_std, n.std_epsilon)
@@ -107,13 +109,13 @@ It is recommended to use offline normalization since the minimum and maximum do 
 - `acc_sum`: Sum of quantities in each step.
 - `acc_sum_squared`: Sum of quantities squared in each step.
 """
-mutable struct NormaliserOnline
+mutable struct NormaliserOnline{T <: AbstractArray{Float32}}
     max_accumulations::Float32
     std_epsilon::Float32
     acc_count::Float32
     num_accumulations::Float32
-    acc_sum::AbstractArray{Float32}
-    acc_sum_squared::AbstractArray{Float32}
+    acc_sum::T
+    acc_sum_squared::T
 end
 
 """
@@ -130,8 +132,10 @@ It is recommended to use offline normalization since the minimum and maximum do 
 - `max_acc = 10f6`: Maximum number of accumulation steps.
 - `std_epsilon = 1f-8`: Epsilon for caluclating the standard deviation.
 """
-function NormaliserOnline(dim::Integer, device::Function; max_acc::Float32 = 10f6, std_ep::Float32 = 1f-8)
-    NormaliserOnline(max_acc, std_ep, 0.0f0, 0.0f0, device(zeros(Float32, dim)), device(zeros(Float32, dim)))
+function NormaliserOnline(
+        dim::Integer, device::Function; max_acc::Float32 = 10.0f6, std_ep::Float32 = 1.0f-8)
+    NormaliserOnline(max_acc, std_ep, 0.0f0, 0.0f0,
+        device(zeros(Float32, dim)), device(zeros(Float32, dim)))
 end
 
 """
@@ -145,15 +149,17 @@ It is recommended to use offline normalization since the minimum and maximum do 
 - `device`: Device where the normaliser should be loaded (see [Lux GPU Management](https://lux.csail.mit.edu/dev/manual/gpu_management#gpu-management)).
 """
 function NormaliserOnline(d::Dict{String, Any}, device::Function)
-    NormaliserOnline(d["max_accumulations"], d["std_epsilon"], d["acc_count"], d["num_accumulations"], device(d["acc_sum"]), device(d["acc_sum_squared"]))
+    NormaliserOnline(d["max_accumulations"], d["std_epsilon"], d["acc_count"],
+        d["num_accumulations"], device(d["acc_sum"]), device(d["acc_sum_squared"]))
 end
 
-(n::NormaliserOnline)(F, acc=true::Bool) = begin
+function (n::NormaliserOnline)(F, acc = true::Bool)
     if acc
         if n.num_accumulations < n.max_accumulations
             accumulate_stats!(n, F)
         end
     end
+
     return (F .- get_mean(n)) ./ get_std_with_epsilon(n)
 end
 
@@ -176,18 +182,20 @@ end
 function accumulate_stats!(n::NormaliserOnline, F)
     n.acc_count += size(F)[2]
     n.acc_sum += tullio_reducesum(F, 2)
-    n.acc_sum_squared += tullio_reducesum(F.^2, 2)
+    n.acc_sum_squared += tullio_reducesum(F .^ 2, 2)
     n.num_accumulations += 1.0f0
 end
 
 function get_mean(n::NormaliserOnline)
     safe_count = max(n.acc_count, 1.0f0)
+
     return n.acc_sum / safe_count
 end
 
 function get_std_with_epsilon(n::NormaliserOnline)
     safe_count = max(n.acc_count, 1.0f0)
     std = get_sqrt.(n.acc_sum_squared / safe_count - get_mean(n) .^ 2)
+
     return max.(std, n.std_epsilon)
 end
 
@@ -204,6 +212,7 @@ function serialize(ns::Dict{String, Union{NormaliserOffline, NormaliserOnline}})
     for (k, n) in ns
         result[k] = serialize(n)
     end
+
     return result
 end
 
@@ -231,7 +240,7 @@ function serialize(n::NormaliserOfflineMeanStd)
     return Dict{String, Any}(
         "data_mean" => n.data_mean,
         "data_std" => n.data_std
-    )    
+    )
 end
 
 function deserialize(n::Dict{String, Any}, device::Function)
