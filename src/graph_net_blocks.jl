@@ -25,7 +25,7 @@ function encode!(
     ef, ste = layers[:edge_model_fn](graph.ef, ps[:edge_model_fn], st[:edge_model_fn])
     new_st = NamedTuple{fields}((stn, ste))
 
-    return update_features!(graph; nf = nf, ef = ef), new_st
+    return FeatureGraph(graph, nf = nf, ef = ef), new_st
 end
 
 struct Processor{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
@@ -52,7 +52,7 @@ function process!(layers::NamedTuple{fields}, graph::FeatureGraph,
         layers[:node_model_fn], ps[:node_model_fn], st[:node_model_fn], graph, uef)
     new_st = NamedTuple{fields}((stn, ste))
 
-    return update_features!(graph; nf = graph.nf + unf, ef = graph.ef + uef), new_st
+    return FeatureGraph(graph, nf = graph.nf + unf, ef = graph.ef + uef), new_st
 end
 
 @inline function update_edge_features(el, ps, st, graph::FeatureGraph)

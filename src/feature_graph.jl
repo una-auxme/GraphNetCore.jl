@@ -21,26 +21,8 @@ mutable struct FeatureGraph{F <: AbstractArray, T <: AbstractArray}
     receivers::T
 end
 
-"""
-    update_features!(g; nf, ef)
-
-Updates the node and edge features of the given [`FeatureGraph`](@ref).
-
-## Arguments
-- `g`: [`FeatureGraph`](@ref) that should be updated.
-
-## Keyword Arguments
-- `nf`: Updated node features.
-- `ef`: Updated edge features.
-
-## Returns
-- Updated graph as a [`FeatureGraph`](@ref) struct.
-"""
-function update_features!(g::FeatureGraph; nf, ef)
-    g.nf = nf
-    g.ef = ef
-
-    return g
+function FeatureGraph(fg::FeatureGraph; nf = fg.nf, ef = fg.ef, senders = fg.senders, receivers = fg.receivers)
+    return FeatureGraph(nf, ef, senders, receivers)
 end
 
 """
