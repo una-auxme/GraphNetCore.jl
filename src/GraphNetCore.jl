@@ -5,10 +5,12 @@
 
 module GraphNetCore
 
-using CUDA
-using Lux, LuxCUDA
+using CUDA, cuDNN
+using Lux
 using Tullio
 using Random
+
+const NAME_TYPE = Union{Nothing, String, Symbol}
 
 include("utils.jl")
 include("normaliser.jl")

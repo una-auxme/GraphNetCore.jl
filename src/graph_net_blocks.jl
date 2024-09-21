@@ -3,13 +3,12 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-struct Encoder{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
+struct Encoder{T <: NamedTuple, N <: NAME_TYPE} <: Lux.AbstractLuxWrapperLayer{:layers}
     layers::T
     name::N
 end
 
-function Encoder(node_model, edge_model; name::Lux.NAME_TYPE = nothing)
+function Encoder(node_model, edge_model; name::NAME_TYPE = nothing)
     fields = (Symbol("node_model_fn"), Symbol("edge_model_fn"))
 
     return Encoder(NamedTuple{fields}((node_model, edge_model)), name)
@@ -28,13 +27,13 @@ function encode!(
     return update_features!(graph; nf = nf, ef = ef), new_st
 end
 
-struct Processor{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
+struct Processor{T <: NamedTuple, N <: NAME_TYPE} <:
+       Lux.AbstractLuxWrapperLayer{:layers}
     layers::T
     name::N
 end
 
-function Processor(node_model, edge_model; name::Lux.NAME_TYPE = nothing)
+function Processor(node_model, edge_model; name::NAME_TYPE = nothing)
     fields = (Symbol("node_model_fn"), Symbol("edge_model_fn"))
 
     return Processor(NamedTuple{fields}((node_model, edge_model)), name)
@@ -68,13 +67,12 @@ end
     return nl(features, ps, st)
 end
 
-struct Decoder{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
+struct Decoder{T <: NamedTuple, N <: NAME_TYPE} <: Lux.AbstractLuxWrapperLayer{:layers}
     layers::T
     name::N
 end
 
-function Decoder(model; name::Lux.NAME_TYPE = nothing)
+function Decoder(model; name::NAME_TYPE = nothing)
     fields = (Symbol("model"),)
 
     return Decoder(NamedTuple{fields}((model,)), name)
