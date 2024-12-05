@@ -30,9 +30,9 @@ mutable struct GraphNetwork
     model::Chain
     ps::ComponentArray
     st::NamedTuple
-    e_norm::Union{NormaliserOffline, NormaliserOnline}
-    n_norm::Dict{String, Union{NormaliserOffline, NormaliserOnline}}
-    o_norm::Dict{String, Union{NormaliserOffline, NormaliserOnline}}
+    e_norm::Union{NormaliserOffline,NormaliserOnline}
+    n_norm::Dict{String,Union{NormaliserOffline,NormaliserOnline}}
+    o_norm::Dict{String,Union{NormaliserOffline,NormaliserOnline}}
 end
 
 """
@@ -53,7 +53,7 @@ Constructs a MLP with the given parameters.
 - MLP constructed as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_mlp(input_size::T, latent_size::T, output_size::T,
-        hidden_layers::T; layer_norm = true) where {T <: Integer}
+    hidden_layers::T; layer_norm=true) where {T<:Integer}
     if layer_norm
         return Chain(Dense(input_size, latent_size, relu),
             collect(Dense(latent_size, latent_size, relu) for _ in 1:hidden_layers),
@@ -82,7 +82,7 @@ Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxD
 - Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_model(quantities_size::Integer, dims, output_size::Integer,
-        mps::Integer, layer_size::Integer, hidden_layers::Integer)
+    mps::Integer, layer_size::Integer, hidden_layers::Integer)
     encoder = Encoder(build_mlp(quantities_size, layer_size, layer_size, hidden_layers),
         build_mlp(dims + 1, layer_size, layer_size, hidden_layers))
 
@@ -94,7 +94,7 @@ function build_model(quantities_size::Integer, dims, output_size::Integer,
     end
 
     decoder = Decoder(build_mlp(
-        layer_size, layer_size, output_size, hidden_layers; layer_norm = false))
+        layer_size, layer_size, output_size, hidden_layers; layer_norm=false))
 
     model = Chain(encoder, processors..., decoder)
 
@@ -117,8 +117,8 @@ Calculates the loss of the network based on the given loss function.
 ## Returns
 - Calculated Loss.
 """
-function loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2},
-        mask::AbstractArray{T, 1}, loss_function) where {T <: Integer}
+function loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32,2},
+    mask::AbstractArray{T,1}, loss_function) where {T<:Integer}
     output, st = gn.model(graph, ps, gn.st)
     gn.st = st
 
@@ -170,7 +170,7 @@ Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 - `is_training = true`: True if used in training, false otherwise (in validation).
 """
 function save!(gn, opt_state, df_train::DataFrame, df_valid::DataFrame,
-        step::Integer, train_loss::Float32, path::String; is_training = true)
+    step::Integer, train_loss::Float32, path::String; is_training=true)
     if is_training
         push!(df_train, [step, train_loss])
     else
@@ -226,10 +226,10 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 - [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the train losses at the checkpoints.
 - [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl) DataFrame containing the validation losses at the checkpoints (only improvements are saved).
 """
-function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnline},
-        n_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}},
-        o_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}},
-        output, message_steps, ls, hl, opt, device::Function, path::String)
+function load(quantities, dims, e_norms::Union{NormaliserOffline,NormaliserOnline},
+    n_norms::Dict{String,Union{NormaliserOffline,NormaliserOnline}},
+    o_norms::Dict{String,Union{NormaliserOffline,NormaliserOnline}},
+    output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))
         step = parse(Int, readlines(joinpath(path, "checkpoints"))[end])
         ps_data, ps_axes, st, e_norm, n_norm, o_norm, opt_state, df_train, df_valid = load(
@@ -260,8 +260,8 @@ function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnli
 
         gn = GraphNetwork(model, ps, st, e_norms, n_norms, o_norms)
 
-        df_train = DataFrame(; step = Integer[], loss = Float32[])
-        df_valid = DataFrame(; step = Integer[], loss = Float32[])
+        df_train = DataFrame(; step=Integer[], loss=Float32[])
+        df_valid = DataFrame(; step=Integer[], loss=Float32[])
 
         return gn, nothing, df_train, df_valid
     end

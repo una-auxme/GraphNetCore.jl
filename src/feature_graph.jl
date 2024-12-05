@@ -3,6 +3,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+using NNlib
+
 """
     FeatureGraph(nf, ef, senders, receivers)
 
@@ -21,7 +23,8 @@ mutable struct FeatureGraph{F <: AbstractArray, T <: AbstractArray}
     receivers::T
 end
 
-function FeatureGraph(fg::FeatureGraph; nf = fg.nf, ef = fg.ef, senders = fg.senders, receivers = fg.receivers)
+function FeatureGraph(fg::FeatureGraph; nf = fg.nf, ef = fg.ef,
+        senders = fg.senders, receivers = fg.receivers)
     return FeatureGraph(nf, ef, senders, receivers)
 end
 
