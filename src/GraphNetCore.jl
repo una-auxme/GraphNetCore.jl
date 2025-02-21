@@ -6,6 +6,7 @@
 module GraphNetCore
 
 using CUDA
+using Flux
 using Lux, LuxCUDA
 using Tullio
 using Random
