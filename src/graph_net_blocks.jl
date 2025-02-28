@@ -31,7 +31,7 @@ function (p::ProcessorLux)(graph::FeatureGraph, ps, st)
     (; node_layer = ste, edge_layer = stn)
 end
 
-struct DecoderLux{D} <: Lux.AbstractLuxWrapperLayer{:decode_layer}
+struct DecoderLux{D} <: Lux.AbstractLuxContainerLayer{(:decode_layer,)}
     decode_layer::D
 end
 
@@ -100,7 +100,7 @@ end
 
 function luxparams_to_fluxstate(ps)
     nt = []
-    for key in valkeys(ps)
+    for key in keys(ps)
         if hasproperty(ps[key], :weight)
             push!(nt, (weight = ps[key].weight, bias = ps[key].bias, σ = ()))
         elseif hasproperty(ps[key], :scale)
@@ -110,6 +110,12 @@ function luxparams_to_fluxstate(ps)
                     ϵ = 1.0f-5,
                     size = (size(ps[key].scale, 1),),
                     affine = true))
+        elseif hasproperty(ps[key], :node_layer)
+            push!(nt,
+                (node_layer = luxparams_to_fluxstate(ps[key].node_layer),
+                    edge_layer = luxparams_to_fluxstate(ps[key].edge_layer)))
+        elseif hasproperty(ps[key], :decode_layer)
+            push!(nt, (decode_layer = luxparams_to_fluxstate(ps[key].decode_layer),))
         else
             push!(nt, luxparams_to_fluxstate(ps[key]))
         end

@@ -199,13 +199,7 @@ Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 - `is_training = true`: True if used in training, false otherwise (in validation).
 """
 function save!(gn::GraphNetwork, opt_state, df_train::DataFrame, df_valid::DataFrame,
-        step::Integer, train_loss::Float32, path::String; is_training = true)
-    if is_training
-        push!(df_train, [step, train_loss])
-    else
-        push!(df_valid, [step, train_loss])
-    end
-
+        step::Integer, path::String)
     if typeof(gn.model) <: Lux.Chain
         ps_data = cpu_device()(getdata(gn.ps))
         ps_axes = getaxes(gn.ps)
