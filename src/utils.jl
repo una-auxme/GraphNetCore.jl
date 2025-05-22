@@ -47,7 +47,7 @@ end
 """
     one_hot(indices, depth, offset = 0)
 
-Constructs a onehot matrix of Bool with the given indices.
+Constructs a onehot matrix of Float32 with the given indices.
 
 ## Arguments
 - `indices`: Indices for the onehot matrix.
@@ -58,7 +58,7 @@ Constructs a onehot matrix of Bool with the given indices.
 - Onehot matrix from the given arguments.
 """
 function one_hot(indices, depth, offset = 0)
-    result = zeros(Bool, depth, length(indices))
+    result = zeros(Float32, depth, length(indices))
     for (i, x) in enumerate(indices)
         if x + offset <= depth && x + offset > 0
             result[x + offset, i] = 1

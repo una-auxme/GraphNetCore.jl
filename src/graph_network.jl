@@ -5,7 +5,6 @@
 
 using ComponentArrays
 
-import Adapt: adapt
 import DataFrames: DataFrame
 import JLD2: load, save
 import Statistics: mean
@@ -28,7 +27,7 @@ The central data structure that contains the neural network and the normalisers 
 - `o_norm`: Normaliser for the output of the GNN, whereas each quantity of interest has its own normaliser.
 """
 mutable struct GraphNetwork
-    model::Union{Lux.Chain, Flux.Chain}
+    model::Lux.Chain
     ps::Union{ComponentArray, AbstractArray{Float32, 1}, Nothing}
     st::Union{NamedTuple, Nothing}
     e_norm::Union{NormaliserOffline, NormaliserOnline}
@@ -54,15 +53,13 @@ Constructs a MLP with the given parameters.
 - MLP constructed as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_mlp(input_size::T, latent_size::T, output_size::T,
-        hidden_layers::T, ml_module; layer_norm = true) where {T <: Integer}
-    mlp = ml_module.Chain(ml_module.Dense(input_size, latent_size, relu),
-        collect(ml_module.Dense(latent_size, latent_size, relu)
-        for _ in 1:hidden_layers)...,
-        ml_module.Dense(latent_size, output_size))
+        hidden_layers::T; layer_norm = true) where {T <: Integer}
+    mlp = Lux.Chain(Lux.Dense(input_size, latent_size, relu),
+        collect(Lux.Dense(latent_size, latent_size, relu) for _ in 1:hidden_layers),
+        Lux.Dense(latent_size, output_size))
     if layer_norm
-        mlp = ml_module.Chain(mlp.layers...,
-            ml_module == Flux ? ml_module.LayerNorm((output_size,)) :
-            ml_module.LayerNorm((output_size,); dims = 1))
+        mlp = Lux.Chain(mlp.layers..., Lux.LayerNorm((output_size,)))
+        # mlp = Lux.Chain(mlp.layers..., Lux.LayerNorm((output_size,); dims = 1))
     end
     return mlp
 end
@@ -84,34 +81,23 @@ Constructs the Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxD
 - Encode-Process-Decode model as a [Lux.jl](https://github.com/LuxDL/Lux.jl) Chain.
 """
 function build_model(quantities_size::Integer, dims, output_size::Integer,
-        mps::Integer, layer_size::Integer, hidden_layers::Integer, ml_module)
-    encoder = ml_module == Lux ?
-              EncoderLux(
-        build_mlp(quantities_size, layer_size, layer_size, hidden_layers, ml_module),
-        build_mlp(dims + 1, layer_size, layer_size, hidden_layers, ml_module)) :
-              EncoderFlux(
-        build_mlp(quantities_size, layer_size, layer_size, hidden_layers, ml_module),
-        build_mlp(dims + 1, layer_size, layer_size, hidden_layers, ml_module))
+        mps::Integer, layer_size::Integer, hidden_layers::Integer)
+    encoder = Encoder(
+        build_mlp(quantities_size, layer_size, layer_size, hidden_layers),
+        build_mlp(dims + 1, layer_size, layer_size, hidden_layers))
 
-    processors = ml_module == Lux ? Vector{ProcessorLux}() : Vector{ProcessorFlux}()
+    processors = Vector{Processor}()
     for _ in 1:mps
         push!(processors,
-            ml_module == Lux ?
-            ProcessorLux(
-                build_mlp(2 * layer_size, layer_size, layer_size, hidden_layers, ml_module),
-                build_mlp(3 * layer_size, layer_size, layer_size, hidden_layers, ml_module)) :
-            ProcessorFlux(
-                build_mlp(2 * layer_size, layer_size, layer_size, hidden_layers, ml_module),
-                build_mlp(3 * layer_size, layer_size, layer_size, hidden_layers, ml_module)))
+            Processor(
+                build_mlp(2 * layer_size, layer_size, layer_size, hidden_layers),
+                build_mlp(3 * layer_size, layer_size, layer_size, hidden_layers)))
     end
 
-    decoder = ml_module == Lux ?
-              DecoderLux(build_mlp(
-        layer_size, layer_size, output_size, hidden_layers, ml_module; layer_norm = false)) :
-              DecoderFlux(build_mlp(
-        layer_size, layer_size, output_size, hidden_layers, ml_module; layer_norm = false))
+    decoder = Decoder(build_mlp(
+        layer_size, layer_size, output_size, hidden_layers; layer_norm = false))
 
-    model = ml_module.Chain(encoder, processors..., decoder)
+    model = Lux.Chain(encoder, processors..., decoder)
 
     return model
 end
@@ -144,17 +130,6 @@ function loss(ps, gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{F
     return loss
 end
 
-function loss(model::Flux.Chain, graph::FeatureGraph, target::AbstractArray{Float32, 2},
-        mask::AbstractArray{T, 1}, loss_function) where {T <: Integer}
-    output = model(graph)
-
-    error = loss_function(target, output)
-
-    loss = mean(error[mask])
-
-    return loss
-end
-
 """
     step!(gn, graph, target_quantities_change, mask, loss_function)
 
@@ -170,13 +145,8 @@ end
 - Calculated training loss.
 """
 function step!(gn, graph, target_quantities_change, mask, loss_function)
-    if typeof(gn.model) <: Lux.Chain
-        train_loss, gs = withgradient(
-            ps -> loss(ps, gn, graph, target_quantities_change, mask, loss_function), gn.ps)
-    elseif typeof(gn.model) <: Flux.Chain
-        train_loss, gs = withgradient(
-            model -> loss(model, graph, target_quantities_change, mask, loss_function), gn.model)
-    end
+    train_loss, gs = withgradient(
+        ps -> loss(ps, gn, graph, target_quantities_change, mask, loss_function), gn.ps)
 
     return gs, train_loss
 end
@@ -200,17 +170,9 @@ Creates a checkpoint of the [`GraphNetwork`](@ref) at the given training step.
 """
 function save!(gn::GraphNetwork, opt_state, df_train::DataFrame, df_valid::DataFrame,
         step::Integer, path::String)
-    if typeof(gn.model) <: Lux.Chain
-        ps_data = cpu_device()(getdata(gn.ps))
-        ps_axes = getaxes(gn.ps)
-        st = cpu_device()(gn.st)
-    elseif typeof(gn.model) <: Flux.Chain
-        model = adapt(Lux.FromFluxAdaptor(; preserve_ps_st = true), gn.model)
-        ps, st = Lux.setup(Random.default_rng(), model)
-        ps = ComponentArray(cpu_device()(ps))
-        ps_data = getdata(ps)
-        ps_axes = getaxes(ps)
-    end
+    ps_data = cpu_device()(getdata(gn.ps))
+    ps_axes = getaxes(gn.ps)
+    st = cpu_device()(gn.st)
 
     save(joinpath(path, "checkpoint_$step.jld2"),
         Dict("ps_data" => ps_data, "ps_axes" => ps_axes, "st" => st,
@@ -263,31 +225,23 @@ Loads the [`GraphNetwork`](@ref) from the latest checkpoint at the given path.
 function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnline},
         n_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}},
         o_norms::Dict{String, Union{NormaliserOffline, NormaliserOnline}},
-        output, message_steps, ls, hl, opt, device::Function, path::String, ml_module)
+        output, message_steps, ls, hl, opt, device::Function, path::String)
     if isfile(joinpath(path, "checkpoints"))
         step = parse(Int, readlines(joinpath(path, "checkpoints"))[end])
         ps_data, ps_axes, st, e_norm, n_norm, o_norm, opt_state, df_train, df_valid = load(
             joinpath(path, "checkpoint_$step.jld2"), "ps_data", "ps_axes", "st",
             "e_norm", "n_norm", "o_norm", "opt_state", "df_train", "df_valid")
         ps = ComponentArray(ps_data, ps_axes)
-        model = build_model(quantities, dims, output, message_steps, ls, hl, ml_module)
+        model = build_model(quantities, dims, output, message_steps, ls, hl)
 
         en = deserialize(e_norm, device)
         nn = deserialize(n_norm, device)
         on = deserialize(o_norm, device)
 
-        if ml_module == Lux
-            ps = ps |> device
-            st = st |> device
+        ps = ps |> device
+        st = st |> device
 
-            gn = GraphNetwork(model, ps, st, en, nn, on)
-        elseif ml_module == Flux
-            model_state = luxparams_to_fluxstate(ps)
-            Flux.loadmodel!(model, model_state)
-            model = model |> device
-
-            gn = GraphNetwork(model, nothing, nothing, en, nn, on)
-        end
+        gn = GraphNetwork(model, ps, st, en, nn, on)
 
         if !isnothing(opt)
             return gn, nothing, df_train, df_valid
@@ -295,20 +249,13 @@ function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnli
             return gn, device(opt_state), df_train, df_valid
         end
     else
-        model = build_model(quantities, dims, output, message_steps, ls, hl, ml_module)
-        if ml_module == Lux
-            ps, st = Lux.setup(Random.default_rng(), model)
+        model = build_model(quantities, dims, output, message_steps, ls, hl)
+        ps, st = Lux.setup(Random.default_rng(), model)
 
-            ps = ComponentArray(ps) |> device
-            st = st |> device
+        ps = ComponentArray(ps) |> device
+        st = st |> device
 
-            gn = GraphNetwork(model, ps, st, e_norms, n_norms, o_norms)
-        elseif ml_module == Flux
-            model = model |> device
-            gn = GraphNetwork(model, nothing, nothing, e_norms, n_norms, o_norms)
-        else
-            throw(ArgumentError("Invalid module for network model. Possible modules are: [Flux, Lux]"))
-        end
+        gn = GraphNetwork(model, ps, st, e_norms, n_norms, o_norms)
 
         df_train = DataFrame(; step = Integer[], loss = Float32[])
         df_valid = DataFrame(; step = Integer[], loss = Float32[])
