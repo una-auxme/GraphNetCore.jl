@@ -85,15 +85,16 @@ Normalizes the given input to the new given range.
 """
 function minmaxnorm(
         input::AbstractArray, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0)
-    @assert input_min<=input_max "minimum of input has to be lower than or equal to maximum of input : $input_min > $input_max"
-    @assert new_min<=new_max "minimum of output has to be lower than or equal to maximum of output : $new_min > $new_max"
-    if input_min == input_max
-        return typeof(input) <: CuArray ? gpu_device()(zeros(Float32, size(input))) :
-               zeros(Float32, size(input))
-    else
-        return ((input .- input_min) / (input_max - input_min)) * (new_max - new_min) .+
-               new_min
-    end
+    @assert minimum(input_max - input_min)>0.0f0 "minimum of input has to be lower than maximum of input : $input_min >= $input_max"
+    @assert minimum(new_max - new_min)>0.0f0 "minimum of output has to be lower than maximum of output : $new_min >= $new_max"
+    return ((input .- input_min) ./ (input_max - input_min)) .* (new_max - new_min) .+
+           new_min
+end
+
+function minmaxnorm(
+        input::Reactant.TracedRArray{T, 2}, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0) where {T}
+    return ((input .- input_min) ./ (input_max - input_min)) .* (new_max - new_min) .+
+           new_min
 end
 
 """
@@ -108,7 +109,7 @@ Calculates the mean squared error of the given arguments with [Tullio](https://g
 ## Returns
 - Calculated mean squared error.
 """
-mse_reduce(target, output) = begin
+function mse_reduce(target, output)
     if ndims(target) != 2 || ndims(output) != 2
         throw(ArgumentError("Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"))
     end
@@ -127,7 +128,7 @@ Implementation of the function [`reducesum`](@ref) with [Tullio](https://github.
 ## Returns
 - Reduced array.
 """
-tullio_reducesum(a, dims) = begin
+function tullio_reducesum(a, dims)
     if dims != 1 && dims != 2
         throw(ArgumentError("Only supported dims are 1 and 2: dims = $dims"))
     end

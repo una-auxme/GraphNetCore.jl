@@ -7,7 +7,7 @@ using GraphNetCore
 using Test
 using Aqua
 
-using CUDA, cuDNN, Lux
+using CUDA
 
 import Random: MersenneTwister
 
