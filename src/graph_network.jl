@@ -8,7 +8,7 @@ using ComponentArrays
 import DataFrames: DataFrame
 import JLD2: load, save
 import Statistics: mean
-import Setfield: @set
+import Setfield: @set!
 import Zygote: withgradient
 
 include("feature_graph.jl")
