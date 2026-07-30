@@ -5,8 +5,9 @@
 
 module GraphNetCore
 
-using CUDA
-using Lux, LuxCUDA
+using Lux
+using CUDA, cuDNN
+using Reactant
 using Tullio
 using Random
 
@@ -23,7 +24,7 @@ export NormaliserOffline, NormaliserOfflineMinMax, NormaliserOfflineMeanStd,
        NormaliserOnline
 
 # graph_network.jl
-export build_model, step!, save!, load
+export build_model, step!, set_training!, save!, load
 # normaliser.jl
 export inverse_data
 # utils.jl

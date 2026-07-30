@@ -3,91 +3,35 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-struct Encoder{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
-    layers::T
-    name::N
+struct Encoder{N, E} <: Lux.AbstractLuxContainerLayer{(:node_layer, :edge_layer)}
+    node_layer::N
+    edge_layer::E
 end
 
-function Encoder(node_model, edge_model; name::Lux.NAME_TYPE = nothing)
-    fields = (Symbol("node_model_fn"), Symbol("edge_model_fn"))
-
-    return Encoder(NamedTuple{fields}((node_model, edge_model)), name)
+function (e::Encoder)(graph::FeatureGraph, ps, st)
+    nf, stn = e.node_layer(graph.nf, ps.node_layer, st.node_layer)
+    ef, ste = e.edge_layer(graph.ef, ps.edge_layer, st.edge_layer)
+    return FeatureGraph(graph; nf = nf, ef = ef), (; node_layer = stn, edge_layer = ste)
 end
 
-function (e::Encoder)(graph::FeatureGraph, ps, st::NamedTuple{fields}) where {fields}
-    encode!(e.layers, graph, ps, st)
+struct Processor{N, E} <: Lux.AbstractLuxContainerLayer{(:node_layer, :edge_layer)}
+    node_layer::N
+    edge_layer::E
 end
 
-function encode!(
-        layers::NamedTuple{fields}, graph, ps, st::NamedTuple{fields}) where {fields}
-    nf, stn = layers[:node_model_fn](graph.nf, ps[:node_model_fn], st[:node_model_fn])
-    ef, ste = layers[:edge_model_fn](graph.ef, ps[:edge_model_fn], st[:edge_model_fn])
-    new_st = NamedTuple{fields}((stn, ste))
-
-    return update_features!(graph; nf = nf, ef = ef), new_st
+function (p::Processor)(graph::FeatureGraph, ps, st)
+    uef, ste = p.edge_layer(aggregate_edge_features(graph), ps.edge_layer, st.edge_layer)
+    unf, stn = p.node_layer(
+        aggregate_node_features(graph, uef), ps.node_layer, st.node_layer)
+    return FeatureGraph(graph; nf = graph.nf + unf, ef = graph.ef + uef),
+    (; node_layer = ste, edge_layer = stn)
 end
 
-struct Processor{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
-    layers::T
-    name::N
+struct Decoder{D} <: Lux.AbstractLuxWrapperLayer{:decode_layer}
+    decode_layer::D
 end
 
-function Processor(node_model, edge_model; name::Lux.NAME_TYPE = nothing)
-    fields = (Symbol("node_model_fn"), Symbol("edge_model_fn"))
-
-    return Processor(NamedTuple{fields}((node_model, edge_model)), name)
-end
-
-function (p::Processor)(graph::FeatureGraph, ps, st::NamedTuple{fields}) where {fields}
-    process!(p.layers, graph, ps, st)
-end
-
-function process!(layers::NamedTuple{fields}, graph::FeatureGraph,
-        ps, st::NamedTuple{fields}) where {fields}
-    uef, ste = update_edge_features(
-        layers[:edge_model_fn], ps[:edge_model_fn], st[:edge_model_fn], graph)
-    unf, stn = update_node_features(
-        layers[:node_model_fn], ps[:node_model_fn], st[:node_model_fn], graph, uef)
-    new_st = NamedTuple{fields}((stn, ste))
-
-    return update_features!(graph; nf = graph.nf + unf, ef = graph.ef + uef), new_st
-end
-
-@inline function update_edge_features(el, ps, st, graph::FeatureGraph)
-    features = aggregate_edge_features(graph)
-
-    return el(features, ps, st)
-end
-
-@inline function update_node_features(
-        nl, ps, st, graph::FeatureGraph, updated_edge_features)
-    features = aggregate_node_features(graph, updated_edge_features)
-
-    return nl(features, ps, st)
-end
-
-struct Decoder{T <: NamedTuple, N <: Lux.NAME_TYPE} <:
-       Lux.AbstractExplicitContainerLayer{(:layers,)}
-    layers::T
-    name::N
-end
-
-function Decoder(model; name::Lux.NAME_TYPE = nothing)
-    fields = (Symbol("model"),)
-
-    return Decoder(NamedTuple{fields}((model,)), name)
-end
-
-function (d::Decoder)(graph::FeatureGraph, ps, st::NamedTuple{fields}) where {fields}
-    decode!(d.layers, graph, ps, st)
-end
-
-function decode!(layers::NamedTuple{fields}, graph::FeatureGraph,
-        ps, st::NamedTuple{fields}) where {fields}
-    y, stm = layers[:model](graph.nf, ps[:model], st[:model])
-    new_st = NamedTuple{fields}((stm,))
-
-    return y, new_st
+function (d::Decoder)(graph::FeatureGraph, ps, st)
+    df, std = d.decode_layer(graph.nf, ps, st)
+    return df, std
 end

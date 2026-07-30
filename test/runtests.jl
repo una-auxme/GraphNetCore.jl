@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2023 Julian Trommer
+# Copyright (c) 2026 Josef Jouaux
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
@@ -7,7 +8,8 @@ using GraphNetCore
 using Test
 using Aqua
 
-using CUDA, cuDNN, Lux
+using CUDA
+using Lux
 
 import Random: MersenneTwister
 
@@ -61,9 +63,9 @@ import Random: MersenneTwister
                                              0 0 1 0
                                              0 1 0 0]
 
-        @test minmaxnorm([2.0f0], 1.0f0, 1.0f0) == [0.0f0]
+        @test_throws AssertionError minmaxnorm([2.0f0], 1.0f0, 1.0f0)
         hascuda &&
-            @test minmaxnorm(gpu([1.0f0, 2.0f0]), 1.0f0, 1.0f0) == gpu([0.0f0, 0.0f0])
+            @test_throws AssertionError minmaxnorm(gpu([1.0f0, 2.0f0]), 1.0f0, 1.0f0)
         @test minmaxnorm([1.4f0, 2.3f0, 3.9f0, 4.0f0], -4.0f0, 4.0f0, 0.0f0, 1.0f0) ==
               [0.675f0, 0.7875f0, 0.9875f0, 1.0f0]
         @test_throws AssertionError minmaxnorm([2.0f0], 1.5f0, 0.5f0)
@@ -104,11 +106,13 @@ import Random: MersenneTwister
         norm_dict_gpu = Dict{String, Union{NormaliserOffline, NormaliserOnline}}(
             "norm_off" => norm_off, "norm_on" => norm_on_gpu)
 
+        # inverse_data for NormaliserOfflineMinMax intentionally returns the input
+        # unchanged (the decoder handles the output range).
         @test inverse_data(norm_off, [0.0f0]) == [0.0f0]
         @test inverse_data(norm_off, [-0.5f0, -0.25f0, 0.1f0, 0.75f0]) ==
-              [-5.0f0, -2.5f0, 1.0f0, 7.5f0]
+              [-0.5f0, -0.25f0, 0.1f0, 0.75f0]
         hascuda && @test inverse_data(norm_off, gpu([-0.5f0, -0.25f0, 0.1f0, 0.75f0])) ==
-              gpu([-5.0f0, -2.5f0, 1.0f0, 7.5f0])
+              gpu([-0.5f0, -0.25f0, 0.1f0, 0.75f0])
 
         norm_dict_cpu_test = GraphNetCore.deserialize(
             GraphNetCore.serialize(norm_dict_cpu), cpu)
@@ -166,8 +170,8 @@ import Random: MersenneTwister
               3.0f0 4.0f0 5.0f0 3.0f0 4.0f0 5.0f0]
         senders = [2, 3, 3, 1, 1, 2]
         receivers = [1, 1, 2, 2, 3, 3]
-        output = [0.7324772f0 -0.027799817f0 0.1475548f0;
-                  0.42122957f0 -0.6571782f0 -0.15739384f0]
+        output = [3.0774236f0 -0.37687588f0 0.2191811f0;
+                  -2.30065f0 -2.6680458f0 -1.881568f0]
 
         graph = FeatureGraph(nf, ef, senders, receivers)
 

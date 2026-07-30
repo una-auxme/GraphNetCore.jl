@@ -3,6 +3,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+using NNlib
+
 """
     FeatureGraph(nf, ef, senders, receivers)
 
@@ -14,33 +16,16 @@ Data structure that is used as an input for the [`GraphNetwork`](@ref).
 - `senders`: List of nodes in the mesh where graph edges start.
 - `receivers`: List of nodes in the mesh where graph edges end.
 """
-mutable struct FeatureGraph{F <: AbstractArray, T <: AbstractArray}
-    nf::F
-    ef::F
+mutable struct FeatureGraph{T <: AbstractArray}
+    nf::Any
+    ef::Any
     senders::T
     receivers::T
 end
 
-"""
-    update_features!(g; nf, ef)
-
-Updates the node and edge features of the given [`FeatureGraph`](@ref).
-
-## Arguments
-- `g`: [`FeatureGraph`](@ref) that should be updated.
-
-## Keyword Arguments
-- `nf`: Updated node features.
-- `ef`: Updated edge features.
-
-## Returns
-- Updated graph as a [`FeatureGraph`](@ref) struct.
-"""
-function update_features!(g::FeatureGraph; nf, ef)
-    g.nf = nf
-    g.ef = ef
-
-    return g
+function FeatureGraph(fg::FeatureGraph; nf = fg.nf, ef = fg.ef,
+        senders = fg.senders, receivers = fg.receivers)
+    return FeatureGraph(nf, ef, senders, receivers)
 end
 
 """
@@ -76,5 +61,6 @@ Aggregates the node features based on the given [`FeatureGraph`](@ref) and updat
 """
 @inline function aggregate_node_features(graph::FeatureGraph, updated_edge_features)
     return vcat(graph.nf,
-        NNlib.scatter(+, updated_edge_features, graph.receivers; dstsize = size(graph.nf)))
+        NNlib.scatter(+, updated_edge_features, graph.receivers;
+            dstsize = size(graph.nf), init = zero(eltype(graph.nf))))
 end
