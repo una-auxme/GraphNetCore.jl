@@ -120,7 +120,8 @@ Calculates the loss of the network based on the given loss function.
 """
 function loss(gn::GraphNetwork, graph::FeatureGraph, target::AbstractArray{Float32, 2},
         mask::AbstractArray{T, 1}, loss_function) where {T <: Integer}
-    output, _ = gn.train_state.model(graph, gn.train_state.ps, gn.train_state.st)
+    output, _ = gn.train_state.model(
+        graph, gn.train_state.parameters, gn.train_state.states)
 
     error = loss_function(target, output)
 
@@ -279,7 +280,7 @@ function load(quantities, dims, e_norms::Union{NormaliserOffline, NormaliserOnli
         st = st |> device
 
         train_state = Lux.Training.TrainState(model, ps, st, opt)
-        @set! train_state.opt_state = opt_state
+        @set! train_state.optimizer_state = opt_state
 
         gn = GraphNetwork(train_state, en, nn, on)
 
