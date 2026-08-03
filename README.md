@@ -11,3 +11,14 @@
 ## Citation
 
 Coming soon!
+
+## Licensing
+
+This repository uses mixed licensing:
+
+- Original GraphNetCore.jl code and modifications are licensed under the
+  [MIT License](LICENSE).
+- Portions adapted from Google DeepMind's MeshGraphNets remain subject to the
+  [Apache License 2.0](LICENSE-APACHE).
+
+See [NOTICE](NOTICE) for attribution, modification notices, and the original source.

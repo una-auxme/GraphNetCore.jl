@@ -1,0 +1,16 @@
+GraphNetCore.jl
+Copyright (c) 2023 Julian Trommer
+Copyright (c) 2026 Josef Jouaux
+
+Licensing:
+- Original GraphNetCore.jl code and modifications: MIT License (LICENSE)
+- DeepMind-derived portions: Apache License 2.0 (LICENSE-APACHE)
+
+Third-party attribution:
+This product includes software derived from the MeshGraphNets implementation
+developed by DeepMind Technologies Limited.
+
+Copyright 2020 DeepMind Technologies Limited. All Rights Reserved.
+
+Original source:
+https://github.com/google-deepmind/deepmind-research/tree/master/meshgraphnets
