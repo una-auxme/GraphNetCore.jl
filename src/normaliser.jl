@@ -19,6 +19,8 @@
 # Modifications made for GraphNetCore.jl are licensed under the MIT License.
 # See the LICENSE file in the project root for details.
 
+import ChainRulesCore: @ignore_derivatives
+
 abstract type NormaliserOffline end
 
 """
@@ -200,8 +202,10 @@ function NormaliserOnline(d::Dict{String, Any}, device::Function)
 end
 
 function (n::NormaliserOnline)(F::AbstractArray)
-    @trace if n.num_accumulations < n.max_accumulations
-        accumulate_stats!(n, F)
+    @ignore_derivatives begin
+        @trace if n.num_accumulations < n.max_accumulations
+            accumulate_stats!(n, F)
+        end
     end
 
     return (F .- get_mean(n)) ./ get_std_with_epsilon(n)
@@ -225,24 +229,10 @@ end
 
 function accumulate_stats!(n::NormaliserOnline, F)
     n.acc_count += size(F)[2]
-    n.acc_sum += tullio_reducesum(F, 2)
-    n.acc_sum_squared += tullio_reducesum(F .^ 2, 2)
-    n.num_accumulations += 1.0f0
-end
-
-function accumulate_stats!(n::NormaliserOnline, F::Reactant.TracedRArray)
-    n.acc_count += size(F)[2]
     n.acc_sum += reduce(+, F; dims = 2)[:, 1]
     n.acc_sum_squared += reduce(+, F .^ 2; dims = 2)[:, 1]
     n.num_accumulations += 1.0f0
 end
-
-# function accumulate_stats!(n::NormaliserOnline, F::Reactant.TracedRArray)
-#     @set n.acc_count = n.acc_count + size(F)[2]
-#     @set n.acc_sum = n.acc_sum + reduce(+, F; dims = 2)[:, 1]
-#     @set n.acc_sum_squared = n.acc_sum_squared + reduce(+, F .^ 2; dims = 2)[:, 1]
-#     @set n.num_accumulations = n.num_accumulations + 1.0f0
-# end
 
 function get_mean(n::NormaliserOnline)
     safe_count = max(n.acc_count, 1.0f0)
@@ -293,7 +283,8 @@ end
 function serialize(n::NormaliserOfflineMeanStd)
     return Dict{String, Any}(
         "data_mean" => cpu_device()(n.data_mean),
-        "data_std" => cpu_device()(n.data_std)
+        "data_std" => cpu_device()(n.data_std),
+        "std_epsilon" => n.std_epsilon
     )
 end
 

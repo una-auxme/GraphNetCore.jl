@@ -41,7 +41,7 @@ function (p::Processor)(graph::FeatureGraph, ps, st)
     stn = p.node_layer(
         aggregate_node_features(graph, uef), ps.node_layer, st.node_layer)
     return FeatureGraph(graph; nf = graph.nf + unf, ef = graph.ef + uef),
-    (; node_layer = ste, edge_layer = stn)
+    (; node_layer = stn, edge_layer = ste)
 end
 
 struct Decoder{D} <: Lux.AbstractLuxWrapperLayer{:decode_layer}

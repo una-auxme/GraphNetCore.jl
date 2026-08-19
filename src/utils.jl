@@ -19,8 +19,6 @@
 # Modifications made for GraphNetCore.jl are licensed under the MIT License.
 # See the LICENSE file in the project root for details.
 
-using KernelAbstractions
-
 """
     triangles_to_edges(faces)
 
@@ -111,46 +109,4 @@ function minmaxnorm(
         input::Reactant.TracedRArray{T, 2}, input_min, input_max, new_min = 0.0f0, new_max = 1.0f0) where {T}
     return ((input .- input_min) ./ (input_max - input_min)) .* (new_max - new_min) .+
            new_min
-end
-
-"""
-    mse_reduce(target, output)
-
-Calculates the mean squared error of the given arguments with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
-
-## Arguments
-- `target`: Ground truth from the data.
-- `output`: Output of the network.
-
-## Returns
-- Calculated mean squared error.
-"""
-function mse_reduce(target, output)
-    if ndims(target) != 2 || ndims(output) != 2
-        throw(ArgumentError("Only supported number of dimensions is 2: dims = (target => $(ndims(target)), output => $(ndims(output)))"))
-    end
-    @tullio R[x] := (target[y, x] - output[y, x])^2
-end
-
-"""
-    tullio_reducesum(a, dims)
-
-Implementation of the function [`reducesum`](@ref) with [Tullio](https://github.com/mcabbott/Tullio.jl) for GPU compatibility.
-
-## Arguments
-- `a`: Array as input for reducesum.
-- `dims`: Along which dimension should be reduced. Only dimension 1 and 2 are supported.
-
-## Returns
-- Reduced array.
-"""
-function tullio_reducesum(a, dims)
-    if dims != 1 && dims != 2
-        throw(ArgumentError("Only supported dims are 1 and 2: dims = $dims"))
-    end
-    if dims == 1
-        @tullio R[1, x] := a[y, x]
-    elseif dims == 2
-        @tullio R[x] := a[x, y]
-    end
 end

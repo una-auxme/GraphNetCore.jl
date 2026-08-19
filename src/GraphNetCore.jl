@@ -6,10 +6,11 @@
 module GraphNetCore
 
 using Lux
+using ComponentArrays
 using CUDA, cuDNN
 using Reactant
-using Tullio
 using Random
+using Zygote
 
 include("utils.jl")
 include("normaliser.jl")
@@ -24,10 +25,10 @@ export NormaliserOffline, NormaliserOfflineMinMax, NormaliserOfflineMeanStd,
        NormaliserOnline
 
 # graph_network.jl
-export build_model, step!, set_training!, save!, load
+export build_model, step!, set_training!, save_checkpoint!, load_checkpoint
 # normaliser.jl
 export inverse_data
 # utils.jl
-export triangles_to_edges, parse_edges, one_hot, minmaxnorm, mse_reduce, inverse_data
+export triangles_to_edges, parse_edges, one_hot, minmaxnorm, inverse_data
 
 end
