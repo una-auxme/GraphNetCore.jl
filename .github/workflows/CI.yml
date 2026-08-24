@@ -35,9 +35,9 @@ jobs:
           - x64
         exclude:
           - os: windows-latest
-            version:
-              - '1.12'
-              - 'pre'
+            version: '1.12'
+          - os: windows-latest
+            version: 'pre'
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
