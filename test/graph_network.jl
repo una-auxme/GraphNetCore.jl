@@ -43,9 +43,9 @@ end
     @test multi_step_layers[5] isa GraphNetCore.Decoder
     @test last(Tuple(multi_step_layers[1].node_layer.layers)) isa Lux.LayerNorm
     @test last(Tuple(multi_step_layers[1].edge_layer.layers)) isa Lux.LayerNorm
-    @test all(processor ->
-            last(Tuple(processor.node_layer.layers)) isa Lux.LayerNorm &&
-                last(Tuple(processor.edge_layer.layers)) isa Lux.LayerNorm,
+    @test all(
+        processor -> last(Tuple(processor.node_layer.layers)) isa Lux.LayerNorm &&
+                     last(Tuple(processor.edge_layer.layers)) isa Lux.LayerNorm,
         multi_step_layers[2:4])
     @test !(last(Tuple(multi_step_layers[5].decode_layer.layers)) isa Lux.LayerNorm)
     multi_ps, multi_st = Lux.setup(MersenneTwister(4321), multi_step_model)
@@ -84,7 +84,8 @@ end
     @test all(isfinite, gradient_values)
     @test any(!iszero, gradient_values)
 
-    zero_mask_gradients, zero_mask_loss = step!(gn, graph, target, node_mask,
+    zero_mask_gradients,
+    zero_mask_loss = step!(gn, graph, target, node_mask,
         zeros(Float32, size(value_mask)))
     @test zero_mask_loss == 0.0f0
     @test all(iszero, ComponentArray(only(zero_mask_gradients)))
@@ -98,7 +99,8 @@ end
         Dict{String, Union{NormaliserOffline, NormaliserOnline}}())
     analytic_graph = FeatureGraph(
         Float32[1 2 3; 4 5 6], zeros(Float32, 0, 0), Int[], Int[])
-    analytic_gradients, analytic_loss = step!(analytic_gn, analytic_graph,
+    analytic_gradients,
+    analytic_loss = step!(analytic_gn, analytic_graph,
         zeros(Float32, 2, 3), [1, 3], ones(Float32, 2, 3))
     @test analytic_loss == 46.0f0
     @test only(analytic_gradients).weight ≈ reshape(Float32[20, -52], 2, 1)
@@ -152,7 +154,8 @@ end
 
         @test GraphNetCore.loss(gpu_ps, gpu_gn, gpu_graph,
             gpu_target, gpu_node_mask, gpu_value_mask) ≈ 8.5f0
-        gpu_gradients, gpu_train_loss = step!(gpu_gn, gpu_graph,
+        gpu_gradients,
+        gpu_train_loss = step!(gpu_gn, gpu_graph,
             gpu_target, gpu_node_mask, gpu_value_mask)
         gpu_gradient_values = ComponentArray(cpu(only(gpu_gradients)))
         @test gpu_train_loss ≈ train_loss
@@ -232,11 +235,11 @@ end
                     node_norms = Dict{String, Union{
                         NormaliserOffline, NormaliserOnline}}(
                         "node" => NormaliserOfflineMeanStd(
-                            Float32[0], Float32[1], gpu))
+                        Float32[0], Float32[1], gpu))
                     output_norms = Dict{String, Union{
                         NormaliserOffline, NormaliserOnline}}(
                         "output" => NormaliserOfflineMeanStd(
-                            Float32[0], Float32[1], gpu))
+                        Float32[0], Float32[1], gpu))
                     optimizer = Lux.Optimisers.Adam(1.0f-3)
 
                     gpu_checkpoint_gn, df_train,
