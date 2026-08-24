@@ -1,7 +1,7 @@
 name = "GraphNetCore"
 uuid = "7809f980-de1b-4f9a-8451-85f041491431"
 authors = ["Julian Trommer <julian.trommer@uni-a.de>"]
-version = "0.4.3"
+version = "0.5.0"
 
 [deps]
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -19,9 +19,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [compat]
-Aqua = "0.8.16 - 0.8"
-CUDA = "6.2 - 6"
-CUDA_Runtime_jll = "0.21, 0.23"
+CUDA = "6.2.2 - 6.2"
 ChainRulesCore = "1.26.1"
 ComponentArrays = "0.15.45 - 0.15"
 DataFrames = "1.8.2 - 1.8"
@@ -29,19 +27,16 @@ JLD2 = "0.6"
 Lux = "1.31 - 1"
 NNlib = "0.9"
 Random = "1"
-Reactant = "0.2.279 - 0.2"
+Reactant = "0.2.280 - 0.2"
 Setfield = "1.1.2"
 Statistics = "1"
 Test = "1"
 Zygote = "0.7"
-cuDNN = "6"
+cuDNN = "6.2.2 - 6.2"
 julia = "1.11"
 
 [extras]
-Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
-CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
-Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Test"]
+test = ["Test"]

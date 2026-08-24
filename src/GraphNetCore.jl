@@ -29,6 +29,6 @@ export build_model, step!, set_training!, save_checkpoint!, load_checkpoint
 # normaliser.jl
 export inverse_data
 # utils.jl
-export triangles_to_edges, parse_edges, one_hot, minmaxnorm, inverse_data
+export triangles_to_edges, parse_edges, one_hot, minmaxnorm
 
 end
